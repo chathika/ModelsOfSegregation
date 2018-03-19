@@ -1,0 +1,81 @@
+;;An algorithm to idenfity, label, and count clusters in the model every frame by Chathika Gunaratne <chathikagunaratne@gmail.com> <chathika.gunaratne@ucf.edu>
+to clustering
+  ask turtles [
+    set cluster 0
+  ]
+
+  set cluster-number 0
+  let x min-pxcor
+  let y min-pycor
+  repeat world-height [
+    repeat world-width [
+      let this-turtle one-of turtles-on patch x y
+      if this-turtle != nobody [
+        ask this-turtle [
+          let my-color color
+          if happy? and cluster = 0 and any? (turtles-on neighbors4) with [color = my-color and happy? ] [
+            set cluster-number cluster-number + 1
+            propagate-cluster self cluster-number
+          ]
+        ]
+      ]
+      set x x + 1
+    ]
+    set y y + 1
+  ]
+  ask turtles with [happy? and cluster = 0][
+    
+    let my-color color
+    if any? (turtles-on neighbors) with [color = my-color and happy? and cluster > 0] [
+      ;set cluster [cluster] of min-one-of (turtles-on neighbors) with [color = my-color and happy?][cluster]
+    ]
+  ]
+  
+  
+  ;ask turtles with [cluster <= 0 ] [ set label ""]
+  count-clusters
+end
+
+to propagate-cluster [me cluster-id]
+  ask me [ set cluster cluster-id ]
+  let my-color [color] of me
+  let my-cluster [cluster] of me
+  let turtles-in-cluster (turtles-on ([neighbors4] of me)) with [color = my-color and happy? and cluster != my-cluster ] 
+  ;let turtles-in-cluster turtles-in-cluster-1 with [count (turtles-on neighbors4) with [color = my-color] > count (turtles-on neighbors4) with [color != my-color]]
+  ifelse turtles-in-cluster = nobody [
+  ] [
+    ask turtles-in-cluster [
+      propagate-cluster self cluster-id
+    ]
+  ]
+end
+
+to count-clusters
+  ;count red clusters
+  let red-clusters (list 0)
+  ask turtles with [color = red] [
+    if member? cluster red-clusters = false [
+      set red-clusters lput cluster red-clusters
+    ]
+  ] 
+  
+  
+  set red-cluster-count length  red-clusters - 1
+  ;count green clusters
+  let green-clusters (list 0)
+  ask turtles with [color = green] [
+    if member? cluster green-clusters = false [
+      set green-clusters lput cluster green-clusters
+    ]
+  ]
+  
+  set green-cluster-count length green-clusters - 1
+  
+  
+  let all-clusters sort remove-duplicates sentence green-clusters red-clusters
+  foreach all-clusters [cluster-i ->
+    ask turtles with [cluster = cluster-i][
+      set cluster position cluster-i all-clusters 
+    ]
+  ]
+end
