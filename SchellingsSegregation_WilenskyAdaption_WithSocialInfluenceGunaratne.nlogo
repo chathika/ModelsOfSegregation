@@ -7,7 +7,6 @@ globals [
   percent-similar  ;; on the average, what percent of a turtle's neighbors
                    ;; are the same color as that turtle?
   percent-unhappy  ;; what percent of the turtles are unhappy?
-  cluster-number
   red-cluster-count
   green-cluster-count
   red-mean-surface-area-to-mass-ratio
@@ -22,6 +21,7 @@ globals [
 
   settled-immigrants
   segregation-coefficient
+
 ]
 
 turtles-own [
@@ -30,6 +30,7 @@ turtles-own [
   similar-nearby   ;; how many neighboring patches have a turtle with my color?
   other-nearby     ;; how many have a turtle of another color?
   total-nearby     ;; sum of previous two variables
+  color-group
   cluster
   rule
 ]
@@ -59,7 +60,7 @@ to go
   move-unhappy-turtles
   update-turtles
 
-  clustering
+  ;clustering
   update-globals
   ;;;;;;;;;;;;;;
   if(ticks > 1 )[
@@ -280,7 +281,7 @@ SLIDER
 %-similar-wanted
 0
 100
-74.0
+53.0
 1
 1
 %
@@ -356,7 +357,7 @@ density
 density
 0
 99
-75.0
+70.0
 1
 1
 %
@@ -442,22 +443,11 @@ PENS
 
 MONITOR
 701
-218
+173
 811
-263
+218
 NIL
 ticks-clusters-1
-17
-1
-11
-
-MONITOR
-702
-175
-811
-220
-NIL
-red-cluster-count
 17
 1
 11
@@ -471,17 +461,6 @@ Agent-Rules
 Agent-Rules
 "RacialPreference" "RacialPreference_AND_SocialInfluence" "RacialPreference_OR_SocialInfluence"
 1
-
-MONITOR
-810
-175
-922
-220
-NIL
-green-cluster-count
-17
-1
-11
 
 PLOT
 921
@@ -534,7 +513,7 @@ SLIDER
 %-RPSI-Green
 0
 100
-0.0
+100.0
 1
 1
 NIL
@@ -549,7 +528,7 @@ SLIDER
 %-RPSI-Red
 0
 100
-0.0
+100.0
 1
 1
 NIL
@@ -557,9 +536,9 @@ HORIZONTAL
 
 MONITOR
 701
-262
+217
 811
-307
+262
 Red Countries
 large-red-clusters
 17
@@ -568,9 +547,9 @@ large-red-clusters
 
 MONITOR
 810
-263
+218
 921
-308
+263
 Green Countries
 large-green-clusters
 17
@@ -579,9 +558,9 @@ large-green-clusters
 
 MONITOR
 810
-219
+174
 921
-264
+219
 NIL
 cum-country-count
 17
@@ -616,6 +595,23 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot segregation-coefficient"
+
+BUTTON
+734
+323
+805
+356
+Cluster
+ask turtles [ set color-group color ]\nclustering
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
 
 @#$#@#$#@
 ## WHAT IS IT?

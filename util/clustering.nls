@@ -1,10 +1,11 @@
 ;;An algorithm to idenfity, label, and count clusters in the model every frame by Chathika Gunaratne <chathikagunaratne@gmail.com> <chathika.gunaratne@ucf.edu>
-to clustering
+to clustering 
   ask turtles [
     set cluster 0
+    set label ""
   ]
 
-  set cluster-number 0
+  let cluster-number 0
   let x min-pxcor
   let y min-pycor
   repeat world-height [
@@ -12,8 +13,10 @@ to clustering
       let this-turtle one-of turtles-on patch x y
       if this-turtle != nobody [
         ask this-turtle [
-          let my-color color
-          if happy? and cluster = 0 and any? (turtles-on neighbors4) with [color = my-color and happy? ] [
+          let my-color color-group
+          ;print count other turtles in-radius 2
+          ;if happy? and (cluster = 0) and any? (turtles-on neighbors) with [color-group = my-color and happy? ] [
+          if happy? and (cluster = 0) and count (other turtles in-radius 2) with [color-group = my-color and happy? ] = 12 [
             set cluster-number cluster-number + 1
             propagate-cluster self cluster-number
           ]
@@ -25,57 +28,53 @@ to clustering
   ]
   ask turtles with [happy? and cluster = 0][
     
-    let my-color color
-    if any? (turtles-on neighbors) with [color = my-color and happy? and cluster > 0] [
+    let my-color color-group
+    if any? (turtles-on neighbors) with [color-group = my-color and happy? and cluster > 0] [
       ;set cluster [cluster] of min-one-of (turtles-on neighbors) with [color = my-color and happy?][cluster]
     ]
   ]
-  
-  
-  ;ask turtles with [cluster <= 0 ] [ set label ""]
   count-clusters
+  ask turtles with [cluster > 0] [set label cluster]
 end
 
 to propagate-cluster [me cluster-id]
   ask me [ set cluster cluster-id ]
-  let my-color [color] of me
+  let my-color [color-group] of me
   let my-cluster [cluster] of me
-  let turtles-in-cluster (turtles-on ([neighbors4] of me)) with [color = my-color and happy? and cluster != my-cluster ] 
-  ;let turtles-in-cluster turtles-in-cluster-1 with [count (turtles-on neighbors4) with [color = my-color] > count (turtles-on neighbors4) with [color != my-color]]
-  ifelse turtles-in-cluster = nobody [
-  ] [
-    ask turtles-in-cluster [
+  ;let turtles-in-cluster (turtles-on ([neighbors] of me)) with [color-group = my-color and happy?  ]
+  let turtles-in-cluster (turtles-on neighbors4) with [color-group = my-color and happy?  ] 
+  ask turtles-in-cluster [
+    ask me [ set cluster cluster-id ]
+    ifelse count turtles-in-cluster = 4 [
+    ask turtles-in-cluster with [cluster != my-cluster] [
       propagate-cluster self cluster-id
     ]
+    ] [
+      
+    ]
   ]
+  ;let turtles-in-cluster turtles-in-cluster-1 with [count (turtles-on neighbors4) with [color = my-color] > count (turtles-on neighbors4) with [color != my-color]]
+  
 end
 
 to count-clusters
-  ;count red clusters
-  let red-clusters (list 0)
-  ask turtles with [color = red] [
-    if member? cluster red-clusters = false [
-      set red-clusters lput cluster red-clusters
+  let turtle-colors remove-duplicates [color-group] of turtles
+  let clusters (list)
+  foreach (turtle-colors) [turtle-color ->
+    let clusters-of-this-color (list 0)
+    ask turtles with [color-group = turtle-color] [
+      if member? cluster clusters-of-this-color = false [
+        set clusters-of-this-color lput cluster clusters-of-this-color
+      ]
     ]
-  ] 
-  
-  
-  set red-cluster-count length  red-clusters - 1
-  ;count green clusters
-  let green-clusters (list 0)
-  ask turtles with [color = green] [
-    if member? cluster green-clusters = false [
-      set green-clusters lput cluster green-clusters
-    ]
+   set clusters lput clusters-of-this-color clusters
   ]
+   
   
-  set green-cluster-count length green-clusters - 1
-  
-  
-  let all-clusters sort remove-duplicates sentence green-clusters red-clusters
-  foreach all-clusters [cluster-i ->
+  set clusters sort remove-duplicates clusters
+  foreach clusters [cluster-i ->
     ask turtles with [cluster = cluster-i][
-      set cluster position cluster-i all-clusters 
+      set cluster position cluster-i clusters 
     ]
   ]
 end
