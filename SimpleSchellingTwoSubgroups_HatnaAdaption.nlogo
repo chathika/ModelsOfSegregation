@@ -481,8 +481,7 @@ end
 
 ;; saves the patches information as ESRI ascii grid
 ;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
-;; Todo: enable saving the tolerance pattern
-to save-as-ascii-grid [file-name]
+to save-as-ascii-grid [file-name region-id]
   file-open file-name
   ;; saving the header
   file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
@@ -509,14 +508,6 @@ to save-as-ascii-grid [file-name]
   ]
 
   file-close
-end
-
-;; assign the tolerance of turtles according to a given distribution
-;; set-of-turtles: an agentset of turtles
-;; distrib-list: a list of pairs (a list of lists):
-;; The first element of the list is the tolerance while the second is the frequency of that toleance in the agentset population
-to set-tolernce-distribution [set-of-turtles distrib-list]
-
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
