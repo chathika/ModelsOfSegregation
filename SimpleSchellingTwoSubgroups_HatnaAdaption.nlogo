@@ -28,8 +28,6 @@ patches-own [
 
 to setup
   clear-all
-  let mid-x (max([pxcor] of patches) + min ([pxcor] of patches) ) / 2
-
   ask patches [
     ;; setting residet as null
     set resident nobody
@@ -481,7 +479,8 @@ end
 
 ;; saves the patches information as ESRI ascii grid
 ;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
-to save-as-ascii-grid [file-name region-id]
+;; Todo: enable saving the tolerance pattern
+to save-as-ascii-grid [file-name]
   file-open file-name
   ;; saving the header
   file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
@@ -508,6 +507,14 @@ to save-as-ascii-grid [file-name region-id]
   ]
 
   file-close
+end
+
+;; assign the tolerance of turtles according to a given distribution
+;; set-of-turtles: an agentset of turtles
+;; distrib-list: a list of pairs (a list of lists):
+;; The first element of the list is the tolerance while the second is the frequency of that toleance in the agentset population
+to set-tolerance-distribution [set-of-turtles distrib-list]
+
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -864,6 +871,17 @@ NIL
 NIL
 NIL
 1
+
+INPUTBOX
+17
+545
+534
+605
+tolerance-dist
+let x  list (list 0.18 0.5) (list 0.8 0.5)
+1
+0
+String
 
 @#$#@#$#@
 ## WHAT IS IT?
