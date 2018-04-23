@@ -14,7 +14,6 @@ turtles-own [
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
   ;;;;variables important to clustering algorithm;;;;
   cluster ; The cluster id this turtle belongs to
-  happy?
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ]
 
@@ -516,7 +515,12 @@ to set-tolerance-distribution [set-of-turtles distribution-string]
     ]
     set tolerance item 0 (item list-item-counter dist-list)
   ]
+end
 
+;; turltle procedure
+;; reports true of the utility of the turtle is 1
+to-report happy?
+  report (calc-utility home-patch) = 1
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -791,26 +795,9 @@ NIL
 10.0
 true
 false
-"" ""
+"" "clustering"
 PENS
 "pen-0" 1.0 0 -7500403 true "" "plot length remove-duplicates [cluster] of turtles with [ cluster > 0]"
-
-BUTTON
-842
-268
-927
-301
-Cluster
-ask turtles[set happy? ifelse-value (home-utility = 1)[true][false]]\nclustering
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 INPUTBOX
 7
