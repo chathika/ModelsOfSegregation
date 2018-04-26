@@ -38,6 +38,7 @@ to setup
       set color-group 2; 2 represents green turtles
       set home-patch myself ;; myself is the calling patch
       set resident self ;; the patch is now occupied by the turtle
+      set shape "square"
     ]
   ]
   ;; setting the group code of the code group 1 ("blue") turtles
@@ -46,12 +47,8 @@ to setup
     set color-group 1
   ]
 
-   set-turtles-color
+  color-by-color-group
   set empty-patches-array array:from-list sort patches with [resident = nobody]
-
-  if update-turtles-appearance? [
-    update-turtles-appearance
-  ]
 
   set-tolerance-distribution turtles with [color-group = 1] tolerance-dist-blue
   set-tolerance-distribution turtles with [color-group = 2] tolerance-dist-green
@@ -85,10 +82,11 @@ to-report get-neighbors
   report  neighbors-list
 end
 
-;; Sets the colors of the turtles according to ther group and subgroup
-to set-turtles-color
+
+
+;; Sets the colors of the turtles according to ther group
+to color-by-color-group
   ask turtles [
-    set shape "square"
     ifelse color-group = 1 [
       set color blue
     ]
@@ -98,16 +96,9 @@ to set-turtles-color
   ]
 end
 
-;; Changes the shapes: a square for happy turtles
-;; and a circle for unhappy ones.
-to update-turtles-appearance
+to color-by-tolerance
   ask turtles [
-    ifelse calc-utility home-patch = 1 [
-      set shape "square 3"
-    ]
-    [
-      set shape "circle"
-    ]
+    set color red + tolerance * white
   ]
 end
 
@@ -119,9 +110,6 @@ to go
     ]
   ]
 
-  if update-turtles-appearance? [
-    update-turtles-appearance
-  ]
   tick
 
   if ticks >= stopping-time [
@@ -664,17 +652,6 @@ neighborhood-distance
 NIL
 HORIZONTAL
 
-SWITCH
-350
-434
-589
-467
-update-turtles-appearance?
-update-turtles-appearance?
-1
-1
--1000
-
 BUTTON
 839
 50
@@ -710,9 +687,9 @@ NIL
 1
 
 BUTTON
-497
+327
 382
-654
+484
 415
 show-hide-c-areas
 ask turtles [set hidden? not hidden?]\nifelse [hidden?] of turtle 0 [ \n  color-areas\n]\n[\n  ask patches [\n    set pcolor black\n  ]\n  \n]
@@ -733,7 +710,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-0
+1
 1
 -1000
 
@@ -795,9 +772,9 @@ NIL
 10.0
 true
 false
-"" "clustering"
+"" "if update-graph? [clustering]"
 PENS
-"pen-0" 1.0 0 -7500403 true "" "plot length remove-duplicates [cluster] of turtles with [ cluster > 0]"
+"pen-0" 1.0 0 -7500403 true "" "if update-graph? [plot length remove-duplicates [cluster] of turtles with [ cluster > 0]]"
 
 INPUTBOX
 7
@@ -820,6 +797,40 @@ tolerance-dist-green
 1
 1
 String
+
+BUTTON
+333
+423
+482
+456
+NIL
+color-by-color-group
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+333
+462
+482
+495
+NIL
+color-by-tolerance
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
