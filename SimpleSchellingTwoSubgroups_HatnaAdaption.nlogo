@@ -126,6 +126,10 @@ end
 
 
 to go
+  if update-clustering [
+    ask turtles[set happy? ifelse-value (home-utility = 1)[true][false]]
+    clustering
+  ]
   ask turtles [
     if interested-to-relocate? [
       try-to-relocate
@@ -848,22 +852,16 @@ false
 PENS
 "pen-0" 1.0 0 -7500403 true "" "plot length remove-duplicates [cluster] of turtles with [ cluster > 0]"
 
-BUTTON
-842
-268
-927
-301
-Cluster
-ask turtles[set happy? ifelse-value (home-utility = 1)[true][false]]\nclustering
-T
+SWITCH
+635
+370
+787
+403
+update-clustering
+update-clustering
+0
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
