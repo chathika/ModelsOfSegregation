@@ -115,6 +115,7 @@ to go
   if ticks >= stopping-time [
     stop
   ]
+  if show-clustering? [clustering]
 end
 
 
@@ -375,7 +376,6 @@ to set-tolerance-distribution [set-of-turtles distribution-string]
     set tolerance item 0 (item list-item-counter dist-list)
   ]
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 209
@@ -697,6 +697,17 @@ NIL
 NIL
 NIL
 1
+
+SWITCH
+637
+389
+785
+422
+show-clustering?
+show-clustering?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
