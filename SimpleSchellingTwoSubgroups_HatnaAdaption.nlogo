@@ -1,8 +1,8 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls"]
-extensions [array]
+__includes ["util/clustering.nls" "factors.nls" "segregation_indices.nls"]
+extensions [array csv]
 globals [
   empty-patches-array;; an array of unoccupied patches
 ]
@@ -11,11 +11,9 @@ turtles-own [
   home-patch; a reference to the home patch
   home-utility; the utility of the home patch
   color-group; the group membership (1 or 2), represent the turtles color
-  tolerance-group; the tolerance group (either 1 and 2)
-
+  tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
   ;;;;variables important to clustering algorithm;;;;
   cluster ; The cluster id this turtle belongs to
-  happy?
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ]
 
@@ -28,8 +26,6 @@ patches-own [
 
 to setup
   clear-all
-  let mid-x (max([pxcor] of patches) + min ([pxcor] of patches) ) / 2
-
   ask patches [
     ;; setting residet as null
     set resident nobody
@@ -40,9 +36,9 @@ to setup
   ask n-of number-of-turtles patches [
     sprout 1 [
       set color-group 2; 2 represents green turtles
-      set tolerance-group 2 ;; setting the subgroup membership
       set home-patch myself ;; myself is the calling patch
       set resident self ;; the patch is now occupied by the turtle
+      set shape "square"
     ]
   ]
   ;; setting the group code of the code group 1 ("blue") turtles
@@ -51,19 +47,11 @@ to setup
     set color-group 1
   ]
 
-  ;; setting the membership of subgroup 1 turtles
-  let no-of-subgroup-1-turtles fraction-of-subgroup-1 *  count turtles
-
-  ask n-of no-of-subgroup-1-turtles turtles [
-   set tolerance-group 1
-  ]
-
-  set-turtles-color
+  color-by-color-group
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
-  if update-turtles-appearance? [
-    update-turtles-appearance
-  ]
+  set-tolerance-distribution turtles with [color-group = 1] tolerance-dist-blue
+  set-tolerance-distribution turtles with [color-group = 2] tolerance-dist-green
 
   reset-ticks
 end
@@ -94,56 +82,40 @@ to-report get-neighbors
   report  neighbors-list
 end
 
-;; Sets the colors of the turtles according to ther group and subgroup
-to set-turtles-color
+
+
+;; Sets the colors of the turtles according to ther group
+to color-by-color-group
   ask turtles [
-    set shape "square"
     ifelse color-group = 1 [
       set color blue
     ]
     [
       set color green
     ]
-
-    if tolerance-group = 2 [
-      set color color - 2
-    ]
   ]
 end
 
-;; Changes the shapes: a square for happy turtles
-;; and a circle for unhappy ones.
-to update-turtles-appearance
+to color-by-tolerance
   ask turtles [
-    ifelse calc-utility home-patch = 1 [
-      set shape "square 3"
-    ]
-    [
-      set shape "circle"
-    ]
+    set color red + tolerance * white
   ]
 end
 
 
 to go
-  if update-clustering [
-    ask turtles[set happy? ifelse-value (home-utility = 1)[true][false]]
-    clustering
-  ]
   ask turtles [
     if interested-to-relocate? [
       try-to-relocate
     ]
   ]
 
-  if update-turtles-appearance? [
-    update-turtles-appearance
-  ]
   tick
 
   if ticks >= stopping-time [
     stop
   ]
+  if show-clustering? [clustering]
 end
 
 
@@ -226,13 +198,7 @@ end
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
   let fraction calc-fraction-of-friends patch-to-evaluate
-  let min-desired-fraction 0
-  ifelse tolerance-group = 1 [
-    set min-desired-fraction min-desired-fraction-of-subgroup-1
-  ]
-  [
-    set min-desired-fraction min-desired-fraction-of-subgroup-2
-  ]
+  let min-desired-fraction tolerance
 
   ifelse fraction < min-desired-fraction    [
     report fraction / min-desired-fraction
@@ -287,135 +253,6 @@ to shuffle-empty-patches-array [no-of-elements]
 end
 
 
-;; Calculates the Moran's I index (spatial autocorrelation of the color pattern)
-;; calc-by-group?: if true, the index is caclulated by group, if false it is calculated by subgroup (toleance)
-to-report moran-I [calc-by-group?]
-  let n 0 ; number of turtles with at least one neighbor
-  let sum-of-values 0
-  let sum-of-squares 0
-
-
-  ask turtles ; calculating the average value, variation and n:
-  [
-    foreach neighboring-patches [
-      cur-patch ->
-      let neighbor-resident [resident] of cur-patch
-      if neighbor-resident != nobody [
-        ask neighbor-resident [
-          let value 0
-          ifelse calc-by-group? [
-            set value color-group
-          ]
-          [
-            set value tolerance-group
-          ]
-
-          set n n + 1
-          set sum-of-values sum-of-values + value
-          set sum-of-squares sum-of-squares + value * value
-        ]
-      ]
-    ]
-  ]
-
-  let average sum-of-values / n
-  let variation sum-of-squares - sum-Of-Values * sum-of-values / n
-
-
-  ; calculating the covariation
-  let covariation 0
-  let sum-of-weights  0
-
-  ask turtles
-  [
-
-    let no-Of-neighbors length neighboring-patches ; no of turtles in the neighborhood
-    let current-turtle-value 0
-
-    ifelse calc-by-group? [
-      set current-turtle-value color-group
-    ]
-    [
-      set current-turtle-value tolerance-group
-    ]
-
-
-    foreach neighboring-patches [
-      [cur-patch] ->
-      let neighbor-resident [resident] of cur-patch
-      if neighbor-resident != nobody [
-        ask neighbor-resident [
-          ;; "current-turtle-value" is the value of the turtle that is in the "center" while
-          ;; "neighbor-value" is the value of one of its neighbors:
-
-          let neighbor-value 0
-          ifelse calc-by-group? [
-            set neighbor-value color-group
-          ]
-          [
-            set neighbor-value tolerance-group
-          ]
-
-          set covariation covariation + (current-turtle-value - average) * (neighbor-value - average) / no-of-neighbors
-          set sum-of-weights sum-Of-weights + 1 / no-of-Neighbors
-        ]
-      ]
-    ]
-  ]
-
-  ifelse variation * sum-of-weights > 0 [
-    report n * covariation / (variation * sum-of-weights)
-  ]
-  [
-    report -1
-  ]
-end
-
-;; reports the c-index
-to-report c-index
-  mark-areas
-  let size-of-blue-patch 0
-  let size-of-green-patch 0
-  let size-of-integrated-patch 0
-  let total-size 0
-
-  ask patches [
-
-    set total-size total-size + 1
-    if c-index-area = 1 [
-      set size-of-blue-patch size-of-blue-patch + 1
-    ]
-
-    if c-index-area = 2 [
-      set size-of-green-patch size-of-green-patch + 1
-    ]
-
-    if c-index-area = 3 [
-      set size-of-integrated-patch size-of-integrated-patch + 1
-    ]
-  ]
-
-
-  report (min (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))) / total-size
-
-end
-
-
-;; Marks the C index areas:
-;; 1 represents homogeneous Blue area
-;; 2 represents homogeneous Green area
-;; 3 represents an integrated area
-;; 4 represents the boundary
-to mark-areas
-  ask patches
-  [
-    set c-index-area 3 ; before marking the turtles, we set the values of all of them to 3 (which represents integrated area)
-  ]
-
-  mark-homogeneous-areas
-  mark-homogeneous-boundary
-
-end
 
 
 
@@ -485,7 +322,8 @@ end
 
 ;; saves the patches information as ESRI ascii grid
 ;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
-to save-as-ascii-grid [file-name region-id]
+;; Todo: enable saving the tolerance pattern
+to save-as-ascii-grid [file-name]
   file-open file-name
   ;; saving the header
   file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
@@ -512,6 +350,31 @@ to save-as-ascii-grid [file-name region-id]
   ]
 
   file-close
+end
+
+;; assign the tolerance of turtles according to a given distribution
+;; set-of-turtles: an agentset of turtles
+;; distrib-string: string representing the distribution.
+;;
+to set-tolerance-distribution [set-of-turtles distribution-string]
+
+  let dist-list csv:from-string distribution-string ;; converts the text into a list of lists
+  ;; The first element of the list is the tolerance
+  ;; while the second is the fraction of that tolerance in the population
+  set dist-list shuffle dist-list
+  let turtle-counter 0
+  let list-item-counter 0
+  let cumulative-prob item 1 (item 0 dist-list) ;; the first prob of the PMF
+  ;; need to shuffle the the list
+
+  ask set-of-turtles [
+    set turtle-counter turtle-counter + 1
+    if turtle-counter > cumulative-prob * count set-of-turtles and list-item-counter + 1 < length dist-list [
+      set list-item-counter list-item-counter + 1
+      set cumulative-prob cumulative-prob + item 1 (item list-item-counter dist-list)
+    ]
+    set tolerance item 0 (item list-item-counter dist-list)
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -589,21 +452,6 @@ NIL
 HORIZONTAL
 
 SLIDER
-10
-392
-343
-425
-min-desired-fraction-of-subgroup-1
-min-desired-fraction-of-subgroup-1
-0
-1
-0.185
-0.005
-1
-NIL
-HORIZONTAL
-
-SLIDER
 14
 215
 199
@@ -670,64 +518,6 @@ neighborhood-distance
 NIL
 HORIZONTAL
 
-SLIDER
-10
-432
-343
-465
-min-desired-fraction-of-subgroup-2
-min-desired-fraction-of-subgroup-2
-0
-1
-0.86
-0.005
-1
-NIL
-HORIZONTAL
-
-SLIDER
-12
-133
-205
-166
-fraction-of-subgroup-1
-fraction-of-subgroup-1
-0
-1
-0.5
-0.01
-1
-NIL
-HORIZONTAL
-
-BUTTON
-60
-470
-194
-503
-Copy Tolerance
-set min-desired-fraction-of-subgroup-2 min-desired-fraction-of-subgroup-1
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-350
-434
-589
-467
-update-turtles-appearance?
-update-turtles-appearance?
-0
-1
--1000
-
 BUTTON
 839
 50
@@ -763,10 +553,10 @@ NIL
 1
 
 BUTTON
-373
-392
-530
-425
+327
+382
+484
+415
 show-hide-c-areas
 ask turtles [set hidden? not hidden?]\nifelse [hidden?] of turtle 0 [ \n  color-areas\n]\n[\n  ask patches [\n    set pcolor black\n  ]\n  \n]
 NIL
@@ -786,7 +576,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-0
+1
 1
 -1000
 
@@ -848,17 +638,73 @@ NIL
 10.0
 true
 false
-"" ""
+"" "if update-graph? [clustering]"
 PENS
-"pen-0" 1.0 0 -7500403 true "" "plot length remove-duplicates [cluster] of turtles with [ cluster > 0]"
+"pen-0" 1.0 0 -7500403 true "" "if update-graph? [plot length remove-duplicates [cluster] of turtles with [ cluster > 0]]"
+
+INPUTBOX
+7
+398
+133
+545
+tolerance-dist-blue
+0.2,0.2\n0.5,0.7\n0.9,0.1
+1
+1
+String
+
+INPUTBOX
+142
+398
+286
+544
+tolerance-dist-green
+0.2,0.5\n0.5,0.5
+1
+1
+String
+
+BUTTON
+333
+423
+482
+456
+NIL
+color-by-color-group
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+333
+462
+482
+495
+NIL
+color-by-tolerance
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 SWITCH
-635
-370
-787
-403
-update-clustering
-update-clustering
+637
+389
+785
+422
+show-clustering?
+show-clustering?
 0
 1
 -1000
@@ -1292,6 +1138,50 @@ set min-desired-fraction-of-subgroup-2 min-desired-fraction-of-subgroup-1</setup
     <steppedValueSet variable="min-desired-fraction-of-subgroup-2" first="-0.001" step="0.041666667" last="1"/>
     <enumeratedValueSet variable="update-graph?">
       <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="min-desired-fraction-of-subgroup-2">
+      <value value="0.86"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.98"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="50000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.2 0.5\n0.5 0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-turtles-appearance?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.2 0.5\n0.5 0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="fraction-of-subgroup-1">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-desired-fraction-of-subgroup-1">
+      <value value="0.185"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="2"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
