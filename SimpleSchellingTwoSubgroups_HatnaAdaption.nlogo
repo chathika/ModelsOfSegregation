@@ -1,7 +1,7 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls" "factors.nls" "segregation_indices.nls"]
+__includes ["util/clustering.nls" "util/factors.nls" "util/segregation_indices.nls"]
 extensions [array csv]
 globals [
   empty-patches-array;; an array of unoccupied patches
@@ -430,7 +430,7 @@ density
 density
 0
 1
-0.98
+0.63
 0.01
 1
 NIL
@@ -445,7 +445,7 @@ fraction-of-blue
 fraction-of-blue
 0
 1
-0.5
+0.57
 0.01
 1
 NIL
@@ -460,7 +460,7 @@ prob-of-relocation-attempt-by-happy
 prob-of-relocation-attempt-by-happy
 0
 1
-0.01
+0.03
 0.01
 1
 NIL
@@ -512,7 +512,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-2.0
+1.0
 1
 1
 NIL
@@ -576,7 +576,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-1
+0
 1
 -1000
 
@@ -586,7 +586,7 @@ INPUTBOX
 99
 376
 stopping-time
-50000.0
+100.0
 1
 0
 Number
@@ -618,7 +618,7 @@ empty-cells-to-evaluate-frac
 empty-cells-to-evaluate-frac
 0
 1
-0.2
+0.7
 0.05
 1
 NIL
