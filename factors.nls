@@ -1,2 +1,8 @@
 ;;Chathika, May 18th: This file contains the reporters coding factors of decision making in the residence selection of agents
 ;; Chathika: typically, these reporters will be agent-context
+
+;; turltle procedure
+;; reports true of the utility of the turtle is 1
+to-report happy?
+  report (calc-utility home-patch) = 1
+end
