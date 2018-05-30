@@ -1,0 +1,49 @@
+;; Function that determines how agents evaulates location
+
+;; reports the proportion of turtles that have the colors of calling turtle
+;; turtle procedure
+to-report same-color-frac [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let no-of-friends 0
+  let no-of-neighbors 0
+
+  foreach neighbor-patches [
+    [cur-patch] ->
+    let neighbor-resident [resident] of cur-patch
+    if neighbor-resident != nobody [
+      set no-of-neighbors no-of-neighbors + 1
+      if [color-group] of neighbor-resident = color-group [
+        set no-of-friends no-of-friends + 1
+      ]
+    ]
+  ]
+
+  ifelse no-of-neighbors > 0 [
+    report no-of-friends /  no-of-neighbors
+  ]
+  [
+    report 0 ;; In case the neighborhood is empty, report 0.
+  ]
+end
+
+to-report happy-frac
+  report 0
+end
+
+to-report average-tolerance
+  report 0
+end
+
+to-report tolerance-below-frac [threshold]
+end
+
+
+to-report tolerance-above-frac [threshold]
+  report 0
+end
+
+
+to-report acceptance-frac
+  report 0
+end
+

@@ -1,7 +1,8 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls"]
+__includes ["util/clustering.nls" "util/Functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
+
 extensions [array csv]
 globals [
   empty-patches-array;; an array of unoccupied patches
@@ -210,27 +211,7 @@ end
 ;; Turtle Procedure
 ;; The turtle calculates the fraction of friends in the neighborhood of a given patch
 to-report calc-fraction-of-friends [patch-to-evaluate]
-  let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let no-of-friends 0
-  let no-of-neighbors 0
-
-  foreach neighbor-patches [
-    [cur-patch] ->
-    let neighbor-resident [resident] of cur-patch
-    if neighbor-resident != nobody [
-      set no-of-neighbors no-of-neighbors + 1
-      if [color-group] of neighbor-resident = color-group [
-        set no-of-friends no-of-friends + 1
-      ]
-    ]
-  ]
-
-  ifelse no-of-neighbors > 0 [
-    report no-of-friends /  no-of-neighbors
-  ]
-  [
-    report 0 ;; In case the neighborhood is empty, report 0.
-  ]
+  report same-color-frac patch-to-evaluate
 end
 
 ;; randomizes the order of the empty patch array
@@ -251,202 +232,6 @@ to shuffle-empty-patches-array [no-of-elements]
   ]
 end
 
-
-;; Calculates the Moran's I index (spatial autocorrelation of the color pattern)
-;; calc-by-group?: if true, the index is caclulated by group, if false it is calculated by subgroup (toleance)
-to-report moran-I [calc-by-group?]
-  let n 0 ; number of turtles with at least one neighbor
-  let sum-of-values 0
-  let sum-of-squares 0
-
-
-  ask turtles ; calculating the average value, variation and n:
-  [
-    foreach neighboring-patches [
-      cur-patch ->
-      let neighbor-resident [resident] of cur-patch
-      if neighbor-resident != nobody [
-        ask neighbor-resident [
-          let value 0
-          ifelse calc-by-group? [
-            set value color-group
-          ]
-          [
-            set value tolerance
-          ]
-
-          set n n + 1
-          set sum-of-values sum-of-values + value
-          set sum-of-squares sum-of-squares + value * value
-        ]
-      ]
-    ]
-  ]
-
-  let average sum-of-values / n
-  let variation sum-of-squares - sum-Of-Values * sum-of-values / n
-
-
-  ; calculating the covariation
-  let covariation 0
-  let sum-of-weights  0
-
-  ask turtles
-  [
-
-    let no-Of-neighbors length neighboring-patches ; no of turtles in the neighborhood
-    let current-turtle-value 0
-
-    ifelse calc-by-group? [
-      set current-turtle-value color-group
-    ]
-    [
-      set current-turtle-value tolerance
-    ]
-
-
-    foreach neighboring-patches [
-      [cur-patch] ->
-      let neighbor-resident [resident] of cur-patch
-      if neighbor-resident != nobody [
-        ask neighbor-resident [
-          ;; "current-turtle-value" is the value of the turtle that is in the "center" while
-          ;; "neighbor-value" is the value of one of its neighbors:
-
-          let neighbor-value 0
-          ifelse calc-by-group? [
-            set neighbor-value color-group
-          ]
-          [
-            set neighbor-value tolerance
-          ]
-
-          set covariation covariation + (current-turtle-value - average) * (neighbor-value - average) / no-of-neighbors
-          set sum-of-weights sum-Of-weights + 1 / no-of-Neighbors
-        ]
-      ]
-    ]
-  ]
-
-  ifelse variation * sum-of-weights > 0 [
-    report n * covariation / (variation * sum-of-weights)
-  ]
-  [
-    report -1
-  ]
-end
-
-;; reports the c-index
-to-report c-index
-  mark-areas
-  let size-of-blue-patch 0
-  let size-of-green-patch 0
-  let size-of-integrated-patch 0
-  let total-size 0
-
-  ask patches [
-
-    set total-size total-size + 1
-    if c-index-area = 1 [
-      set size-of-blue-patch size-of-blue-patch + 1
-    ]
-
-    if c-index-area = 2 [
-      set size-of-green-patch size-of-green-patch + 1
-    ]
-
-    if c-index-area = 3 [
-      set size-of-integrated-patch size-of-integrated-patch + 1
-    ]
-  ]
-
-
-  report (min (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))) / total-size
-
-end
-
-
-;; Marks the C index areas:
-;; 1 represents homogeneous Blue area
-;; 2 represents homogeneous Green area
-;; 3 represents an integrated area
-;; 4 represents the boundary
-to mark-areas
-  ask patches
-  [
-    set c-index-area 3 ; before marking the turtles, we set the values of all of them to 3 (which represents integrated area)
-  ]
-
-  mark-homogeneous-areas
-  mark-homogeneous-boundary
-
-end
-
-
-
-
-
-;; marks pathces which are in homogeneous area for a given agent group
-;; A patch is marked if the following conditions are met:
-;;       1. It is occupied by a turtle
-;;       2. The neighborhood is not empty and all the neighbors belong to the group of the turtle
-;; The patches are marked by setting the c-index-area variable to the turtle's group code
-
-to mark-homogeneous-areas
-  ask patches [
-    if resident != nobody [
-      ask resident [
-       if calc-fraction-of-friends myself = 1 [
-         set c-index-area color-group
-       ]
-      ]
-    ]
-  ]
-end
-
-
-;; Marks by 4 any patch with c-index-area =3 which has at least one neighbor which is part of
-;; the homogeneous area (marked by 1 or 2, i,e, the group code of the turtles)
-to mark-homogeneous-boundary
-  ask patches with [c-index-area = 3] [
-   let no-of-homo-neighbors 0
-   foreach neighboring-patches [
-      [cur-patch] ->
-     ask cur-patch [
-       if c-index-area = 1 or c-index-area = 2  [
-         set no-of-homo-neighbors no-of-homo-neighbors + 1
-       ]
-     ]
-   ]
-   if no-of-homo-neighbors > 0 [
-     set c-index-area 4
-   ]
-
-  ]
-end
-
-
-
-to color-areas
-  mark-areas
-  ask patches [
-    if c-index-area = 1 [
-      set pcolor blue
-    ]
-
-    if c-index-area = 2 [
-      set pcolor green
-    ]
-
-    if c-index-area = 3 [
-      set pcolor red
-    ]
-
-    if c-index-area = 4 [
-      set pcolor grey
-    ]
-]
-end
 
 ;; saves the patches information as ESRI ascii grid
 ;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
@@ -710,7 +495,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-1
+0
 1
 -1000
 
@@ -1179,7 +964,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
