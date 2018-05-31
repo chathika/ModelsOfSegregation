@@ -290,11 +290,6 @@ to set-tolerance-distribution [set-of-turtles distribution-string]
   ]
 end
 
-;; turltle procedure
-;; reports true of the utility of the turtle is 1
-to-report happy?
-  report (calc-utility home-patch) = 1
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 209

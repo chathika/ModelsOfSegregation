@@ -26,6 +26,41 @@ to-report same-color-frac [patch-to-evaluate]
   ]
 end
 
+
+;; turltle procedure
+;; reports true of the utility of the turtle is 1
+to-report happy?
+  report (calc-utility home-patch) = 1
+end
+
+;; reports true if the neighbor is of the same color groups as the calling turtle
+;; turtle procedure
+to-report same-color-group? [neighbor]
+  report color-group = [color-group] of neighbor
+end
+
+;; returns true if the turtle would be happy given the entering or leaving of a given neighbor
+;; neighbor: the turtle that is considered as either leaving or entering the neighborhood
+;; entering;; true indicates an enering turtle, false an exsiting turtle
+;; turtle procedure
+to-report happy-after-neighbor-relocation? [neighbor entering?]
+end
+
+;; return the usility of the turtle given the entering or leaving of a given neighbor
+;; neighbor: the turtle that is considered as either leaving or entering the neighborhood
+;; entering;; true indicates an enering turtle, false an exsiting turtle
+;; turtle procedure
+to-report utility-after-relocation [neighbot entering?]
+end
+
+to-report more-tolerant-than-me? 
+end
+
+to-report less-tolerant-than-me?
+end
+
+
+
 to-report happy-frac
   report 0
 end
@@ -45,5 +80,8 @@ end
 
 to-report acceptance-frac
   report 0
+end
+
+to-report accepts-me?
 end
 
