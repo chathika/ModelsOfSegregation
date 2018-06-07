@@ -54,45 +54,17 @@ to-report less-tolerant-than-me? [neighbor]
   report tolerance > [tolerance] of neighbor
 end
 
-;; returns if the turtle would be happy given the entering or leaving of a given neighbor
-;; neighbor: the turtle that is considered as either leaving or entering the neighborhood
-;; entering;; true indicates an enering turtle, false an exsiting turtle
+
+;; reports true if the the utility of the neighbor would decrease if the calling turtle would reside in the neighbor's neighborhood 
+;; in other words, a true value indicates the the neighbor would prefer tha the turtle would not be her/his neighborhood
 ;; turtle procedure
-to-report happy-after-neighbor-relocation? [neighbor entering?]
-end
-
-;; return the utility of the turtle given the entering or leaving of a given neighbor
-;; neighbor: the turtle that is considered as either leaving or entering the neighborhood
-;; entering;; true indicates an enering turtle, false an exsiting turtle
-;; turtle procedure
-to-report utility-after-relocation [neighbor entering?]
+to-report presence-decreases-utility? [neighbor]
+  
 end
 
 
 
 
 
-to-report happy-frac
-  report 0
-end
 
-to-report average-tolerance
-  report 0
-end
-
-to-report tolerance-below-frac [threshold]
-end
-
-
-to-report tolerance-above-frac [threshold]
-  report 0
-end
-
-
-to-report acceptance-frac
-  report 0
-end
-
-to-report accepts-me?
-end
 
