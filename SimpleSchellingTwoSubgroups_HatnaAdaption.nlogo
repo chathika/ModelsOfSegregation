@@ -208,11 +208,6 @@ to-report calc-utility [patch-to-evaluate]
   ]
 end
 
-;; Turtle Procedure
-;; The turtle calculates the fraction of friends in the neighborhood of a given patch
-to-report calc-fraction-of-friends [patch-to-evaluate]
-  report same-color-frac patch-to-evaluate
-end
 
 ;; randomizes the order of the empty patch array
 ;; only the first "no-of-element" are randomized
@@ -289,7 +284,6 @@ to set-tolerance-distribution [set-of-turtles distribution-string]
     set tolerance item 0 (item list-item-counter dist-list)
   ]
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 209
