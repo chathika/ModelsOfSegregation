@@ -1,0 +1,115 @@
+;; procedures for calculating the C index of patterns
+
+
+
+;; reports the c-index
+to-report c-index
+  mark-areas
+  let size-of-blue-patch 0
+  let size-of-green-patch 0
+  let size-of-integrated-patch 0
+  let total-size 0
+
+  ask patches [
+
+    set total-size total-size + 1
+    if c-index-area = 1 [
+      set size-of-blue-patch size-of-blue-patch + 1
+    ]
+
+    if c-index-area = 2 [
+      set size-of-green-patch size-of-green-patch + 1
+    ]
+
+    if c-index-area = 3 [
+      set size-of-integrated-patch size-of-integrated-patch + 1
+    ]
+  ]
+
+
+  report (min (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))) / total-size
+
+end
+
+
+;; Marks the C index areas:
+;; 1 represents homogeneous Blue area
+;; 2 represents homogeneous Green area
+;; 3 represents an integrated area
+;; 4 represents the boundary
+to mark-areas
+  ask patches
+  [
+    set c-index-area 3 ; before marking the turtles, we set the values of all of them to 3 (which represents integrated area)
+  ]
+
+  mark-homogeneous-areas
+  mark-homogeneous-boundary
+
+end
+
+
+
+
+
+;; marks pathces which are in homogeneous area for a given agent group
+;; A patch is marked if the following conditions are met:
+;;       1. It is occupied by a turtle
+;;       2. The neighborhood is not empty and all the neighbors belong to the group of the turtle
+;; The patches are marked by setting the c-index-area variable to the turtle's group code
+
+to mark-homogeneous-areas
+  ask patches [
+    if resident != nobody [
+      ask resident [
+       if calc-fraction-of-friends myself = 1 [
+         set c-index-area color-group
+       ]
+      ]
+    ]
+  ]
+end
+
+
+;; Marks by 4 any patch with c-index-area =3 which has at least one neighbor which is part of
+;; the homogeneous area (marked by 1 or 2, i,e, the group code of the turtles)
+to mark-homogeneous-boundary
+  ask patches with [c-index-area = 3] [
+   let no-of-homo-neighbors 0
+   foreach neighboring-patches [
+      [cur-patch] ->
+     ask cur-patch [
+       if c-index-area = 1 or c-index-area = 2  [
+         set no-of-homo-neighbors no-of-homo-neighbors + 1
+       ]
+     ]
+   ]
+   if no-of-homo-neighbors > 0 [
+     set c-index-area 4
+   ]
+
+  ]
+end
+
+
+
+to color-areas
+  mark-areas
+  ask patches [
+    if c-index-area = 1 [
+      set pcolor blue
+    ]
+
+    if c-index-area = 2 [
+      set pcolor green
+    ]
+
+    if c-index-area = 3 [
+      set pcolor red
+    ]
+
+    if c-index-area = 4 [
+      set pcolor grey
+    ]
+]
+end
