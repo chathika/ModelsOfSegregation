@@ -484,7 +484,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-0
+1
 1
 -1000
 
