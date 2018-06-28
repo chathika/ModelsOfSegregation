@@ -123,7 +123,7 @@ end
 ;; reports true if the turtle is intersted to relocate
 to-report interested-to-relocate?
   ;; the utility of the home patch
-  set home-utility calc-utility home-patch
+  set home-utility get-patch-utility home-patch
   report
     home-utility < 1 or
       (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
@@ -146,7 +146,7 @@ to try-to-relocate
   ;; Looking for the patch with the highest utility
   while [counter < no-of-patches-to-evaluate] [
     let patch-to-evaluate array:item empty-patches-array counter
-    let utility calc-utility patch-to-evaluate
+    let utility get-patch-utility patch-to-evaluate
     if (utility >= utility-of-best-patch)
        [
          set utility-of-best-patch utility
@@ -196,17 +196,25 @@ end
 
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
-to-report calc-utility [patch-to-evaluate]
+to-report get-patch-utility [patch-to-evaluate]
   let fraction calc-fraction-of-friends patch-to-evaluate
-  let min-desired-fraction tolerance
+  report calc-utility fraction
+end
 
-  ifelse fraction < min-desired-fraction    [
-    report fraction / min-desired-fraction
+;; reports the utility given the fraction of friends
+to-report calc-utility [friends-fraction]
+
+  let min-desired-fraction tolerance
+  ifelse friends-fraction < min-desired-fraction    [
+    report friends-fraction / min-desired-fraction
   ]
   [
     report 1; 1 represents an happy turtle
   ]
+
 end
+
+
 
 
 ;; randomizes the order of the empty patch array

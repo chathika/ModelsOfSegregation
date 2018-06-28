@@ -32,7 +32,7 @@ to-report calc-number-of-friends [patch-to-evaluate]
     let neighbor-resident [resident] of cur-patch
     if neighbor-resident != nobody [
       set no-of-neighbors no-of-neighbors + 1
-      if same-color-group? neighbor-resident [
+      if friend? neighbor-resident [
         set no-of-friends no-of-friends + 1
       ]
     ]
@@ -42,11 +42,17 @@ to-report calc-number-of-friends [patch-to-evaluate]
   
 end 
 
+;; reports if the calling turtle consider the neigbor as a friend
+;; turtle procedure
+to-report friend? [neighbor]
+  report same-color-group? neighbor
+end
+
 
 ;; turltle procedure
 ;; reports if the utility of the turtle is 1
 to-report happy?
-  report (calc-utility home-patch) = 1
+  report (get-patch-utility home-patch) = 1
 end
 
 ;; reports if the neighbor is of the same color groups as the calling turtle
@@ -73,10 +79,49 @@ end
 ;; in other words, a true value indicates the the neighbor would prefer that the turtle would not be in her/his neighborhood
 ;; turtle procedure
 to-report presence-decreases-utility? [neighbor]
-  let current-utility calc-utility home-patch
-  let expected-utility 0
+  let calling-turtle self
+  let utility-difference 0
+  
+  ask neighbor [  
+    let current-utility get-patch-utility home-patch
+    let cur-list calc-number-of-friends home-patch   
+  
+    let number-of-freinds item 0 cur-list
+    let no-of-neighbors item 1 cur-list
+  
+    let delta-no-of-neighbors 0 ;; change in the number of neighbors if the calling turtle enters or leaves 
+    ifelse neighbors? calling-turtle neighbor [
+      set delta-no-of-neighbors -1 ;; if they are neighbors, then we are considering a scneraio where the calling turtle leaves
+    ] [
+      set delta-no-of-neighbors 1 ;; if they are not neighbors, then we are considering a scneraio where the calling turtle enters
+    ]
+  
+    let delta-no-of-friends 0 ;; change in the number of friends if the calling turtle enters or leaves 
+    ifelse friend? calling-turtle [
+      set delta-no-of-friends 1 ;; the neighbor considers the calling turtle as a friend
+    ] [
+      set delta-no-of-friends -1 ;; the neighbor does not consider the calling turtle as a friend
+    ]
+    
+  
+    let new-fraction-of-freinds (number-of-freinds + delta-no-of-friends) / (no-of-neighbors + delta-no-of-neighbors)
+    let new-utility calc-utility new-fraction-of-freinds
+    set utility-difference current-utility - new-utility
+  ]
+  report  utility-difference < 0
   
   
+  
+  
+  
+
+  
+  let expected-utility 0  
+end
+
+
+;; Reports if the two turtles are neighbors
+to-report neighbors? [turtle-a turtle-b] 
 end
 
 
