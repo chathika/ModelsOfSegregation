@@ -74,7 +74,7 @@ to-report requires-more-friends-than-me? [neighbor]
   report tolerance < [tolerance] of neighbor
 end
 
-
+;; verify funcntion ****
 ;; reports true if the the utility of the neighbor would decrease if the calling turtle would reside in the neighbor's neighborhood 
 ;; in other words, a true value indicates the the neighbor would prefer that the turtle would not be in her/his neighborhood
 ;; turtle procedure
@@ -90,38 +90,48 @@ to-report presence-decreases-utility? [neighbor]
     let no-of-neighbors item 1 cur-list
   
     let delta-no-of-neighbors 0 ;; change in the number of neighbors if the calling turtle enters or leaves 
-    ifelse neighbors? calling-turtle neighbor [
-      set delta-no-of-neighbors -1 ;; if they are neighbors, then we are considering a scneraio where the calling turtle leaves
+    ifelse neighbor? calling-turtle [
+      set delta-no-of-neighbors -1 ;; if they are neighbors, then we are considering a case where the calling turtle leaves
     ] [
-      set delta-no-of-neighbors 1 ;; if they are not neighbors, then we are considering a scneraio where the calling turtle enters
+      set delta-no-of-neighbors 1 ;; if they are not neighbors, then we are considering a case where the calling turtle enters
     ]
   
     let delta-no-of-friends 0 ;; change in the number of friends if the calling turtle enters or leaves 
     ifelse friend? calling-turtle [
-      set delta-no-of-friends 1 ;; the neighbor considers the calling turtle as a friend
+      set delta-no-of-friends delta-no-of-neighbors ;; the neighbor considers the calling turtle as a friend which either leaves or enter
     ] [
-      set delta-no-of-friends -1 ;; the neighbor does not consider the calling turtle as a friend
+      set delta-no-of-friends 0 ;; the neighbor does not consider the calling turtle as a friend (and thus the number of friends in unchanged)
     ]
     
   
-    let new-fraction-of-freinds (number-of-freinds + delta-no-of-friends) / (no-of-neighbors + delta-no-of-neighbors)
+    let new-fraction-of-freinds 0
+    ifelse (no-of-neighbors + delta-no-of-neighbors) > 0 [
+      set new-fraction-of-freinds (number-of-freinds + delta-no-of-friends) / (no-of-neighbors + delta-no-of-neighbors)
+    ][
+      set new-fraction-of-freinds 0
+    ]
+    
     let new-utility calc-utility new-fraction-of-freinds
     set utility-difference current-utility - new-utility
   ]
   report  utility-difference < 0
-  
-  
-  
-  
-  
-
-  
-  let expected-utility 0  
 end
 
 
-;; Reports if the two turtles are neighbors
-to-report neighbors? [turtle-a turtle-b] 
+;; Reports if the other turtle is a neighbor of the calling turtle
+;; turtle procedure
+to-report neighbor? [other-turtle]
+  let neighbor-patches [neighboring-patches] of home-patch
+ 
+  foreach neighbor-patches [
+    [cur-patch] ->
+    let neighbor-resident [resident] of cur-patch
+    if neighbor-resident = other-turtle [
+      report true 
+    ]
+  ]
+  
+  report false  
 end
 
 
