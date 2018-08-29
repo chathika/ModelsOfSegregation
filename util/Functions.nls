@@ -2,6 +2,7 @@
 
 ;; The turtle calculates the fraction of friends in the neighborhood of a given patch
 ;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
 to-report calc-fraction-of-friends [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let no-of-friends 0
@@ -29,27 +30,32 @@ end
 
 ;; turltle procedure
 ;; reports if the utility of the turtle is 1
+;; @EMD @factor @return-type=float
 to-report happy?
   report (calc-utility home-patch) = 1
 end
 
 ;; reports if the neighbor is of the same color groups as the calling turtle
 ;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
 to-report same-color-group? [neighbor]
   report color-group = [color-group] of neighbor
 end
 
 ;; turtle procedure
 ;; reports whether the neighbor has a similar tolerance as the calling turtle
+;; @EMD @factor @return-type=boolean @parameter-type=patch
 to-report similar-tolerance? [neighbor]
   report (tolerance - [tolerance] of neighbor ) < 0.1
 end
 
 ;; reports  if the neighbor requires more freiands to be happy compared ot hte calling turtle (the neighbor is less tolerant)
-to-report requires-more-friends-tha-nme? [neighbor]
+;; @EMD @factor @return-type=boolean @parameter-type=patch
+to-report requires-more-friends-than-me? [neighbor]
   report tolerance < [tolerance] of neighbor
 end
 
+;; @EMD @factor @return-type=boolean @parameter-type=patch
 to-report less-tolerant-than-me? [neighbor]
   report tolerance > [tolerance] of neighbor
 end
@@ -58,6 +64,7 @@ end
 ;; reports true if the the utility of the neighbor would decrease if the calling turtle would reside in the neighbor's neighborhood 
 ;; in other words, a true value indicates the the neighbor would prefer tha the turtle would not be her/his neighborhood
 ;; turtle procedure
+;; @EMD @factor @return-type=boolean @parameter-type=patch
 to-report presence-decreases-utility? [neighbor]
   
 end
