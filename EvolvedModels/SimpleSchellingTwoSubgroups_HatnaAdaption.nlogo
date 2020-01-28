@@ -222,7 +222,9 @@ to-report calc-utility [patch-to-evaluate]
   let utility-here 0
   carefully [set utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-  1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+    runresult utility-function
+  ;;Best Rules from EMD are:
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
@@ -371,7 +373,7 @@ density
 density
 0
 1
-0.0
+0.7
 0.01
 1
 NIL
@@ -386,7 +388,7 @@ fraction-of-blue
 fraction-of-blue
 0
 1
-0.0
+0.5
 0.01
 1
 NIL
@@ -401,7 +403,7 @@ prob-of-relocation-attempt-by-happy
 prob-of-relocation-attempt-by-happy
 0
 1
-0.0
+0.01
 0.01
 1
 NIL
@@ -453,7 +455,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-0.0
+1.0
 1
 1
 NIL
@@ -527,7 +529,7 @@ INPUTBOX
 99
 376
 stopping-time
-0.0
+100.0
 1
 0
 Number
@@ -559,7 +561,7 @@ empty-cells-to-evaluate-frac
 empty-cells-to-evaluate-frac
 0
 1
-0.0
+1.0
 0.05
 1
 NIL
@@ -589,7 +591,7 @@ INPUTBOX
 133
 545
 tolerance-dist-blue
-0
+0.125,0.5\n0.833,0.5
 1
 1
 String
@@ -600,7 +602,7 @@ INPUTBOX
 286
 544
 tolerance-dist-green
-0
+0.125,0.5\n0.833,0.5
 1
 1
 String
@@ -658,6 +660,16 @@ PENS
 "default" 1.0 0 -16777216 true "" "if ticks > 0[\nplot mean [mean table:values lengths-of-residence] of turtles\n]"
 "pen-1" 1.0 0 -7500403 true "" "if ticks > 0 [\nplot min [min table:values lengths-of-residence] of turtles\n]"
 "pen-2" 1.0 0 -2674135 true "" "if ticks > 0 [\nplot max [min table:values lengths-of-residence] of turtles\n]"
+
+CHOOSER
+130
+612
+1177
+657
+utility-function
+utility-function
+"1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-isolation get-patch-to-evaluate)" "1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)"
+5
 
 @#$#@#$#@
 ## WHAT IS IT?
