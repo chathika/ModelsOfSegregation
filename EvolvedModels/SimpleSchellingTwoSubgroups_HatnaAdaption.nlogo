@@ -210,15 +210,15 @@ end
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
   ifelse old-utility-function [
-    ;let fraction calc-fraction-of-friends patch-to-evaluate
-    ;let min-desired-fraction tolerance
+    let fraction calc-fraction-of-friends patch-to-evaluate
+    let min-desired-fraction tolerance
 
-    ;ifelse fraction < min-desired-fraction    [
-    ;  report fraction / min-desired-fraction
-    ;]
-    ;[
-    ;  report 1; 1 represents an happy turtle
-    ;]
+    ifelse fraction < min-desired-fraction    [
+      report fraction / min-desired-fraction
+    ]
+    [
+      report 1; 1 represents an happy turtle
+    ]
   ][
     set patch-being-evaluated patch-to-evaluate
     let utility-here 0
