@@ -135,7 +135,7 @@ to-report interested-to-relocate?
   set home-utility calc-utility home-patch
   report
     home-utility < 1 or
-      (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
+      (home-utility >= 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
 end
 
 
@@ -209,38 +209,41 @@ end
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
-  ;let fraction calc-fraction-of-friends patch-to-evaluate
-  ;let min-desired-fraction tolerance
+  ifelse old-utility-function [
+    ;let fraction calc-fraction-of-friends patch-to-evaluate
+    ;let min-desired-fraction tolerance
 
-  ;ifelse fraction < min-desired-fraction    [
-  ;  report fraction / min-desired-fraction
-  ;]
-  ;[
-  ;  report 1; 1 represents an happy turtle
-  ;]
-  set patch-being-evaluated patch-to-evaluate
-  let utility-here 0
-  carefully [set utility-here
-  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-    runresult utility-function
-  ;;Best Rules from EMD are:
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-isolation get-patch-to-evaluate)
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+    ;ifelse fraction < min-desired-fraction    [
+    ;  report fraction / min-desired-fraction
+    ;]
+    ;[
+    ;  report 1; 1 represents an happy turtle
+    ;]
+  ][
+    set patch-being-evaluated patch-to-evaluate
+    let utility-here 0
+    carefully [set utility-here
+      ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
+      runresult utility-function
+      ;;Best Rules from EMD are:
+      ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+      ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+      ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+      ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+      ;2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-isolation get-patch-to-evaluate)
+      ;1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
 
-    ; rest of the factors are as so:
-;calc-fraction-of-friends get-patch-to-evaluate
-;variance-neighborhood-tolerance get-patch-to-evaluate
-;mean-neighborhood-tolerance get-patch-to-evaluate
-;normalized-neighborhood-isolation get-patch-to-evaluate
-;distance-from-home-patch get-patch-to-evaluate
-;my-length-of-residence-here get-patch-to-evaluate
-;my-tendency-to-move get-patch-to-evaluate
-  ][set utility-here 0]
-  report utility-here
+      ; rest of the factors are as so:
+      ;calc-fraction-of-friends get-patch-to-evaluate
+      ;variance-neighborhood-tolerance get-patch-to-evaluate
+      ;mean-neighborhood-tolerance get-patch-to-evaluate
+      ;normalized-neighborhood-isolation get-patch-to-evaluate
+      ;distance-from-home-patch get-patch-to-evaluate
+      ;my-length-of-residence-here get-patch-to-evaluate
+      ;my-tendency-to-move get-patch-to-evaluate
+    ][set utility-here 0]
+    report utility-here
+  ]
 end
 
 
@@ -403,7 +406,7 @@ prob-of-relocation-attempt-by-happy
 prob-of-relocation-attempt-by-happy
 0
 1
-0.01
+0.41
 0.01
 1
 NIL
@@ -529,7 +532,7 @@ INPUTBOX
 99
 376
 stopping-time
-100.0
+1000.0
 1
 0
 Number
@@ -670,6 +673,17 @@ utility-function
 utility-function
 "1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-isolation get-patch-to-evaluate)" "1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)"
 5
+
+SWITCH
+370
+553
+555
+586
+old-utility-function
+old-utility-function
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
