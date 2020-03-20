@@ -1,7 +1,7 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["../util/clustering.nls" "../util/functions.nls" "../util/C-Index.nls" "../util/MoransI.nls"]
+__includes ["/util/clustering.nls" "/util/functions.nls" "/util/C-Index.nls" "/util/MoransI.nls"]
 
 extensions [array csv table]
 globals [
@@ -403,7 +403,7 @@ density
 density
 0
 1
-0.7
+0.0
 0.01
 1
 NIL
@@ -418,7 +418,7 @@ fraction-of-blue
 fraction-of-blue
 0
 1
-0.5
+0.0
 0.01
 1
 NIL
@@ -433,7 +433,7 @@ prob-of-relocation-attempt-by-happy
 prob-of-relocation-attempt-by-happy
 0
 1
-0.01
+0.0
 0.01
 1
 NIL
@@ -485,7 +485,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-1.0
+0.0
 1
 1
 NIL
@@ -559,7 +559,7 @@ INPUTBOX
 99
 376
 stopping-time
-1000.0
+0.0
 1
 0
 Number
@@ -591,7 +591,7 @@ empty-cells-to-evaluate-frac
 empty-cells-to-evaluate-frac
 0
 1
-1.0
+0.0
 0.05
 1
 NIL
@@ -621,7 +621,7 @@ INPUTBOX
 133
 545
 tolerance-dist-blue
-0.125,0.5\n0.833,0.5
+0
 1
 1
 String
@@ -632,7 +632,7 @@ INPUTBOX
 286
 544
 tolerance-dist-green
-0.125,0.5\n0.833,0.5
+0
 1
 1
 String
