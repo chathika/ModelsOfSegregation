@@ -262,7 +262,6 @@ to-report calc-utility [patch-to-evaluate]
     if ret-val > 1 [
       set ret-val 1
     ]
-    print ret-val
     report ret-val
   ]
 end
