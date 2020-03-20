@@ -4,6 +4,15 @@
 ;; turtle procedure
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report calc-fraction-of-friends [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "calc-fraction-of-friends"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
+  let factor-value 0
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let no-of-friends 0
   let no-of-neighbors 0
@@ -19,11 +28,14 @@ to-report calc-fraction-of-friends [patch-to-evaluate]
     ]
   ]
   ifelse no-of-neighbors > 0 [
-    report no-of-friends /  no-of-neighbors
+    set factor-value no-of-friends /  no-of-neighbors
   ]
   [
-    report 0 ;; In case the neighborhood is empty, report 0.
+    set factor-value 0 ;; In case the neighborhood is empty, report 0.
   ]
+  
+  cache-result factor-name factor-value
+  report factor-value
 end
 ;; reports if the neighbor is of the same color groups as the calling turtle
 ;; turtle procedure
@@ -38,6 +50,14 @@ end
 ;; reports the normalized variance in tolerance in the patch neighborhood
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report variance-neighborhood-tolerance [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "variance-neighborhood-tolerance"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let neighbor-turtles-tolerances (list)
   foreach neighbor-patches [
@@ -49,6 +69,9 @@ to-report variance-neighborhood-tolerance [patch-to-evaluate]
   ]
   if (length neighbor-turtles-tolerances) < 2 [report 0]
   let neighbors-variance-tolerance variance neighbor-turtles-tolerances
+  
+  
+  cache-result factor-name neighbors-variance-tolerance
   report neighbors-variance-tolerance ;/ 1 largest possible variance is 1...
   ;largest possible distance from mean tolerance is 1, 1^2 = 1, minimum n is 1
   ;... dividing by 1 to normalize is redundant
@@ -58,6 +81,14 @@ end
 ;; reports the mean tolerance in the patch neighborhood
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report mean-neighborhood-tolerance [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "mean-neighborhood-tolerance"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let neighbor-turtles-tolerances (list)
   foreach neighbor-patches [
@@ -68,14 +99,26 @@ to-report mean-neighborhood-tolerance [patch-to-evaluate]
     ]
   ]
   if (length neighbor-turtles-tolerances = 0 ) [report 0]
-  let mean-neighbor-tolerance mean neighbor-turtles-tolerances
-  report mean-neighbor-tolerance ; already normalized since tolerance is between 0 and 1
+  let factor-value mean neighbor-turtles-tolerances
+  
+  cache-result factor-name factor-value
+  
+  report factor-value ; already normalized since tolerance is between 0 and 1
 end
 
 ;; turtles procedure
 ;; reports the normalized isolation of the patch neighborhood
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report normalized-neighborhood-isolation [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "normalized-neighborhood-isolation"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
+  let factor-value 0
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let no-of-unoccupied-patches 0
   foreach neighbor-patches [
@@ -85,16 +128,28 @@ to-report normalized-neighborhood-isolation [patch-to-evaluate]
     ]
   ]
   ifelse (length neighbor-patches) > 0 [
-    report no-of-unoccupied-patches /  (length neighbor-patches)
+    set factor-value no-of-unoccupied-patches /  (length neighbor-patches)
   ]
   [
-    report 0 ;; In case the neighborhood is empty, report 0.
+    set factor-value 0 ;; In case the neighborhood is empty, report 0.
   ]
+  
+  cache-result factor-name factor-value
+  
+  report factor-value
 end
 
 ;; reports the mean of the home-utility experienced by residents in this neighborhood
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report mean-home-utility-of-residents-here [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "mean-home-utility-of-residents-here"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let home-utilities-neighborhood (list)
   foreach neighbor-patches [
@@ -104,12 +159,24 @@ to-report mean-home-utility-of-residents-here [patch-to-evaluate]
     ]
   ]
   if (length home-utilities-neighborhood) = 0 [report 0]
-  report mean home-utilities-neighborhood
+  let factor-value mean home-utilities-neighborhood
+  
+  cache-result factor-name factor-value
+  
+  report factor-value
 end
 
 ;; reports the variance of the home-utility experienced by residents in this neighborhood
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report variance-home-utility-of-residents-here [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "variance-home-utility-of-residents-here"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let home-utilities-neighborhood (list)
   foreach neighbor-patches [
@@ -119,26 +186,54 @@ to-report variance-home-utility-of-residents-here [patch-to-evaluate]
     ]
   ]
   if (length home-utilities-neighborhood) < 2 [report 0]
-  report variance home-utilities-neighborhood
+  let factor-value variance home-utilities-neighborhood
+  
+  cache-result factor-name factor-value
+  
+  report factor-value
 end
 
 ;; reports the distance from the home-patch
 ;; turtle procedure
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report distance-from-home-patch [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "distance-from-home-patch"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
   let dist 0
   ask home-patch [ set dist distance patch-to-evaluate]
-  report dist / max-distance-between-patches
+  let factor-value dist / max-distance-between-patches
+  
+  cache-result factor-name factor-value
+  
+  report factor-value
 end
 
 ;; reports the number of ticks for which the agent has resided at this patch
 ;; turtle procedure
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report my-length-of-residence-here [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "my-length-of-residence-here"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
   let key-of-patch (list ([pxcor] of patch-to-evaluate) ([pycor] of patch-to-evaluate))
   let length-of-residence-here table:get-or-default lengths-of-residence key-of-patch  0
   if ticks = 0 [report 0]
-  report length-of-residence-here / ticks
+  let factor-value length-of-residence-here / ticks
+  
+  cache-result factor-name factor-value
+  
+  report factor-value
 end
 
 ;; reports number of moves / ticks if patch-to-evaluate is not home-patch
@@ -146,12 +241,25 @@ end
 ;; turtle procedure
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report my-tendency-to-move [patch-to-evaluate]
+  
+  ;; consult cache first
+  let factor-name "my-tendency-to-move"
+  let cached-result? get-cached-result-if-any? factor-name
+  if not is-boolean? cached-result? [ report cached-result? ] 
+  ;; result not cached...
+  update-possible-utility-range 0 1
+  
+  let factor-value 0
   if ticks = 0 [report 0]
   ifelse patch-to-evaluate = home-patch [
-    report 1 - (length table:keys lengths-of-residence) / ticks
+    set factor-value 1 - (length table:keys lengths-of-residence) / ticks
   ][
-    report (length table:keys lengths-of-residence) / ticks
-  ]
+    set factor-value (length table:keys lengths-of-residence) / ticks
+  ]  
+  
+  cache-result factor-name factor-value
+  
+  report factor-value
 end
 
 ;; reports the patch to evaluate
@@ -190,4 +298,23 @@ end
 ;; turtle procedure
 to-report presence-decreases-utility? [neighbor]
 ;;; not implemented  
+end
+
+to-report get-cached-result-if-any? [var]
+  ifelse table:has-key? results-cache var [
+    report table:get results-cache var
+  ][
+    report False
+  ]
+end
+
+to cache-result [var val]
+  table:put results-cache var val
+end
+
+to update-possible-utility-range [min-utility max-utility]
+  if not utility-function-evaluated [
+    set min-possible-utility min-possible-utility - min-utility
+    set max-possible-utility max-possible-utility + max-utility
+  ]
 end
