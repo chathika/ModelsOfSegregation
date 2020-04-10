@@ -289,7 +289,7 @@ end
 
 ;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,-
 to-report divide [a b]
-  report a / b
+  report a / (b + 0.00000000000000000001)
 end
 
 
