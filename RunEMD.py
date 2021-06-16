@@ -11,15 +11,15 @@ setup = [
     'set tolerance-dist-green "0.125,0.5\\n0.833,0.5"',
     'setup']
 measurements = ["c-index"]
-ticks = 100
+ticks = 10
 emd = EvolutionaryModelDiscovery("/opt/netlogo/", modelPath,setup, measurements, ticks)
 emd.setMutationRate(0.1)
 emd.setCrossoverRate(0.8)
 emd.setGenerations(50)
 emd.setReplications(5)
 emd.setDepth(2,6)
-emd.setPopulationSize(50)
-emd.setIsMinimize(False)
+emd.setPopulationSize(5)
+#emd.setIsMinimize(False)
 
 def cindexObjective(results):
     #print(results.iloc[-1][0])
