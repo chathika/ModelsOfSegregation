@@ -1,17 +1,13 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls" "util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
+__includes ["../util/clustering.nls" "../util/functions.nls" "../util/C-Index.nls" "../util/MoransI.nls"]
 
 extensions [array csv table]
 globals [
   empty-patches-array;; an array of unoccupied patches
   global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
   max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computations
-  ;; max and min possible utility used to normalize utility values
-  max-possible-utility
-  min-possible-utility
-  utility-function-evaluated
 ]
 
 turtles-own [
@@ -24,8 +20,6 @@ turtles-own [
   lengths-of-residence ; The number of ticks this agent has occupied this patch
   patch-being-evaluated ; A temporary variable to hold the patch being considered for utility calculation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; used to cache results of factors so they don't have to reprocessed in the cases of deep utility functions
-  results-cache
 ]
 
 patches-own [
@@ -58,24 +52,18 @@ to setup
     set color-group 1
   ]
 
-  color-by-color-group
+
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
   set-tolerance-distribution turtles with [color-group = 1] tolerance-dist-blue
   set-tolerance-distribution turtles with [color-group = 2] tolerance-dist-green
+  color-by-color-group
   ask turtles [
    set lengths-of-residence table:make
   ]
   ;; set some globals required for utility function calculations
   set global-max-tolerance max [tolerance] of turtles
   set max-distance-between-patches (sqrt ( (world-height / 2) ^ 2 + (world-width / 2) ^ 2))
-  ask turtles [
-    ;;initialize results cache
-    set results-cache table:make
-  ]
-  set min-possible-utility 0
-  set max-possible-utility 0
-  set utility-function-evaluated false
   reset-ticks
 end
 
@@ -128,7 +116,6 @@ end
 
 to go
   ask turtles [
-    reset-results-cache
     if interested-to-relocate? [
       try-to-relocate
     ]
@@ -149,7 +136,7 @@ to-report interested-to-relocate?
   set home-utility calc-utility home-patch
   report
     home-utility < 1 or
-      (home-utility >= 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
+      (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
 end
 
 
@@ -223,47 +210,39 @@ end
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
-  ifelse old-utility-function [
-    let fraction calc-fraction-of-friends patch-to-evaluate
-    let min-desired-fraction tolerance
+;  let fraction calc-fraction-of-friends patch-to-evaluate
+;  let min-desired-fraction tolerance
+;
+;  ifelse fraction < min-desired-fraction    [
+;    report fraction / min-desired-fraction
+;  ]
+;  [
+;    report 1; 1 represents an happy turtle
+;  ]
+  set patch-being-evaluated patch-to-evaluate
+  let utility-here 0
+  ;carefully [
+  set utility-here
+  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
+   1 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate) ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
 
-    ifelse fraction < min-desired-fraction    [
-      report fraction / min-desired-fraction
-    ]
-    [
-      report 1; 1 represents an happy turtle
-    ]
-  ][
-    set patch-being-evaluated patch-to-evaluate
-    let utility-here 0
-    set utility-here
-      ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-      runresult utility-function
-      ;;Best Rules from EMD are:
-      ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-      ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-      ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-      ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-      ;2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-isolation get-patch-to-evaluate)
-      ;1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+    ; rest of the factors are as so:
+  ;calc-fraction-of-friends get-patch-to-evaluate
+  ;variance-neighborhood-tolerance get-patch-to-evaluate
+  ;mean-neighborhood-tolerance get-patch-to-evaluate
+  ;normalized-neighborhood-isolation get-patch-to-evaluate
+  ;distance-from-home-patch get-patch-to-evaluate
+  ;my-length-of-residence-here get-patch-to-evaluate
+;my-tendency-to-move get-patch-to-evaluate
+  ;][set utility-here 0]
 
-      ; rest of the factors are as so:
-      ;calc-fraction-of-friends get-patch-to-evaluate
-      ;variance-neighborhood-tolerance get-patch-to-evaluate
-      ;mean-neighborhood-tolerance get-patch-to-evaluate
-      ;normalized-neighborhood-isolation get-patch-to-evaluate
-      ;distance-from-home-patch get-patch-to-evaluate
-      ;my-length-of-residence-here get-patch-to-evaluate
-      ;my-tendency-to-move get-patch-to-evaluate
-    set utility-here (utility-here - min-possible-utility) / (max-possible-utility - min-possible-utility)
-    set utility-function-evaluated true
-    ;; If utility-here is above tolerance-threshold then utility is automatically 1 otherwise it is a fraction of the tolerance
-    let ret-val utility-here / tolerance
-    if ret-val > 1 [
-      set ret-val 1
-    ]
-    report ret-val
-  ]
+  report utility-here
 end
 
 
@@ -342,12 +321,6 @@ to set-tolerance-distribution [set-of-turtles distribution-string]
     set tolerance item 0 (item list-item-counter dist-list)
   ]
 end
-
-;; turtle procedure
-;; sets all the values of the results-cache to False
-to reset-results-cache
-  table:clear results-cache
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 209
@@ -402,7 +375,7 @@ density
 density
 0
 1
-0.0
+0.75
 0.01
 1
 NIL
@@ -417,7 +390,7 @@ fraction-of-blue
 fraction-of-blue
 0
 1
-0.0
+0.5
 0.01
 1
 NIL
@@ -432,7 +405,7 @@ prob-of-relocation-attempt-by-happy
 prob-of-relocation-attempt-by-happy
 0
 1
-0.0
+0.01
 0.01
 1
 NIL
@@ -484,7 +457,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-0.0
+1.0
 1
 1
 NIL
@@ -548,7 +521,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-1
+0
 1
 -1000
 
@@ -558,7 +531,7 @@ INPUTBOX
 99
 376
 stopping-time
-0.0
+1000.0
 1
 0
 Number
@@ -590,29 +563,11 @@ empty-cells-to-evaluate-frac
 empty-cells-to-evaluate-frac
 0
 1
-0.0
+1.0
 0.05
 1
 NIL
 HORIZONTAL
-
-PLOT
-844
-109
-1119
-264
-Cluster Count
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" "if update-graph? [clustering]"
-PENS
-"pen-0" 1.0 0 -7500403 true "" "if update-graph? [plot length remove-duplicates [cluster] of turtles with [ cluster > 0]]"
 
 INPUTBOX
 7
@@ -620,7 +575,7 @@ INPUTBOX
 133
 545
 tolerance-dist-blue
-0
+0.185,0.5\n0.860,0.5
 1
 1
 String
@@ -631,7 +586,7 @@ INPUTBOX
 286
 544
 tolerance-dist-green
-0
+0.185,0.5\n0.860,0.5
 1
 1
 String
@@ -669,47 +624,6 @@ NIL
 NIL
 NIL
 1
-
-PLOT
-849
-261
-1049
-411
-Length of Residence
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "if ticks > 0[\nplot mean [mean table:values lengths-of-residence] of turtles\n]"
-"pen-1" 1.0 0 -7500403 true "" "if ticks > 0 [\nplot min [min table:values lengths-of-residence] of turtles\n]"
-"pen-2" 1.0 0 -2674135 true "" "if ticks > 0 [\nplot max [min table:values lengths-of-residence] of turtles\n]"
-
-CHOOSER
-35
-552
-1082
-597
-utility-function
-utility-function
-"1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)" "2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-isolation get-patch-to-evaluate)" "1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)"
-1
-
-SWITCH
-545
-484
-730
-517
-old-utility-function
-old-utility-function
-1
-1
--1000
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1058,7 +972,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.4
+NetLogo 6.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
