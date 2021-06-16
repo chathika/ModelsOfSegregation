@@ -33,7 +33,6 @@ to-report racial-utility [patch-to-evaluate]
   if fraction < min-desired-fraction    [
     set val fraction / min-desired-fraction
   ]
-  print val
   report val
 end
 
@@ -131,7 +130,6 @@ to-report variance-home-utility-of-residents-here [patch-to-evaluate]
     ]
   ]
   if (length home-utilities-neighborhood) < 2 [report 0]
-  print home-utilities-neighborhood
   report variance home-utilities-neighborhood
 end
 

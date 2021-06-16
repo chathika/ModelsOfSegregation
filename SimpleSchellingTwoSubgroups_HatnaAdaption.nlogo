@@ -13,6 +13,7 @@ globals [
 turtles-own [
   home-patch; a reference to the home patch
   home-utility; the utility of the home patch
+  home-utility-unassigned; temporary variable to prevent compounding
   color-group; the group membership (1 or 2), represent the turtles color
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
   ;;;;variables important to clustering algorithm;;;;
@@ -115,6 +116,10 @@ end
 
 
 to go
+
+  calc-home-utilities
+
+  ; compare home utility with potential new home utilities
   ask turtles [
     if interested-to-relocate? [
       try-to-relocate
@@ -128,12 +133,22 @@ to go
   ]
 end
 
+;; global procedure
+;; calcs home utilities for agents
+to calc-home-utilities
+  ; calc home utilities
+  ask turtles [
+    set home-utility-unassigned calc-utility home-patch
+  ]
+  ; assign home utilities. Done in two steps since some factors require home-utility of other agents.
+  ask turtles [
+   set home-utility home-utility-unassigned
+  ]
+end
 
 ;; turtle procedure
 ;; reports true if the turtle is intersted to relocate
 to-report interested-to-relocate?
-  ;; the utility of the home patch
-  set home-utility calc-utility home-patch
   report
     home-utility < 1 or
       (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
@@ -146,7 +161,7 @@ to try-to-relocate
   ;; The turtle considers a given fraction of the empty patches
   let no-of-patches-to-evaluate empty-cells-to-evaluate-frac * array:length empty-patches-array
 
-  ;; shuffeling the first "no-of-patches-to-evaluate" patches
+  ;; shuffling the first "no-of-patches-to-evaluate" patches
   shuffle-empty-patches-array (no-of-patches-to-evaluate)
 
   let utility-of-best-patch -1
@@ -224,7 +239,7 @@ to-report calc-utility [patch-to-evaluate]
   ;carefully [
   set utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-   1 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate) ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+   1 * (racial-utility get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate) ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
