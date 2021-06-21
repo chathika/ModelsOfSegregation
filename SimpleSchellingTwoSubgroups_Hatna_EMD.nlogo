@@ -1,7 +1,7 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["../util/clustering.nls" "../util/functions.nls" "../util/C-Index.nls" "../util/MoransI.nls"]
+__includes ["util/clustering.nls" "util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
 
 extensions [array csv table]
 globals [
@@ -13,6 +13,7 @@ globals [
 turtles-own [
   home-patch; a reference to the home patch
   home-utility; the utility of the home patch
+  home-utility-unassigned; temporary variable to prevent compounding
   color-group; the group membership (1 or 2), represent the turtles color
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
   ;;;;variables important to clustering algorithm;;;;
@@ -115,6 +116,10 @@ end
 
 
 to go
+
+  calc-home-utilities
+
+  ; compare home utility with potential new home utilities
   ask turtles [
     if interested-to-relocate? [
       try-to-relocate
@@ -128,12 +133,22 @@ to go
   ]
 end
 
+;; global procedure
+;; calcs home utilities for agents
+to calc-home-utilities
+  ; calc home utilities
+  ask turtles [
+    set home-utility-unassigned calc-utility home-patch
+  ]
+  ; assign home utilities. Done in two steps since some factors require home-utility of other agents.
+  ask turtles [
+   set home-utility home-utility-unassigned
+  ]
+end
 
 ;; turtle procedure
 ;; reports true if the turtle is intersted to relocate
 to-report interested-to-relocate?
-  ;; the utility of the home patch
-  set home-utility get-patch-utility home-patch
   report
     home-utility < 1 or
       (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
@@ -146,7 +161,7 @@ to try-to-relocate
   ;; The turtle considers a given fraction of the empty patches
   let no-of-patches-to-evaluate empty-cells-to-evaluate-frac * array:length empty-patches-array
 
-  ;; shuffeling the first "no-of-patches-to-evaluate" patches
+  ;; shuffling the first "no-of-patches-to-evaluate" patches
   shuffle-empty-patches-array (no-of-patches-to-evaluate)
 
   let utility-of-best-patch -1
@@ -156,7 +171,7 @@ to try-to-relocate
   ;; Looking for the patch with the highest utility
   while [counter < no-of-patches-to-evaluate] [
     let patch-to-evaluate array:item empty-patches-array counter
-    let utility get-patch-utility patch-to-evaluate
+    let utility calc-utility patch-to-evaluate
     if (utility >= utility-of-best-patch)
        [
          set utility-of-best-patch utility
@@ -209,24 +224,6 @@ end
 
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
-<<<<<<< HEAD:SimpleSchellingTwoSubgroups_Hatna_Original.nlogo
-to-report get-patch-utility [patch-to-evaluate]
-  let fraction calc-fraction-of-friends patch-to-evaluate
-  report calc-utility fraction
-end
-
-;; reports the utility given the fraction of friends
-to-report calc-utility [friends-fraction]
-
-  let min-desired-fraction tolerance
-  ifelse friends-fraction < min-desired-fraction    [
-    report friends-fraction / min-desired-fraction
-  ]
-  [
-    report 1; 1 represents an happy turtle
-  ]
-
-=======
 to-report calc-utility [patch-to-evaluate]
 ;  let fraction calc-fraction-of-friends patch-to-evaluate
 ;  let min-desired-fraction tolerance
@@ -242,7 +239,7 @@ to-report calc-utility [patch-to-evaluate]
   ;carefully [
   set utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-   1 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate) ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+   1 * (calc-fraction-of-friends get-patch-to-evaluate) ;+ -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate); + 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
@@ -261,10 +258,7 @@ to-report calc-utility [patch-to-evaluate]
   ;][set utility-here 0]
 
   report utility-here
->>>>>>> master:EvolvedModels/SimpleSchellingTwoSubgroups_HatnaAdaption.nlogo
 end
-
-
 
 
 ;; randomizes the order of the empty patch array
@@ -396,7 +390,7 @@ density
 density
 0
 1
-0.75
+0.9
 0.01
 1
 NIL
@@ -478,7 +472,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-1.0
+2.0
 1
 1
 NIL
@@ -542,7 +536,7 @@ SWITCH
 353
 update-graph?
 update-graph?
-1
+0
 1
 -1000
 
@@ -552,7 +546,7 @@ INPUTBOX
 99
 376
 stopping-time
-1000.0
+10000.0
 1
 0
 Number
@@ -596,7 +590,7 @@ INPUTBOX
 133
 545
 tolerance-dist-blue
-0.185,0.5\n0.860,0.5
+0.185,1.0
 1
 1
 String
@@ -607,7 +601,7 @@ INPUTBOX
 286
 544
 tolerance-dist-green
-0.185,0.5\n0.860,0.5
+0.185,1.0
 1
 1
 String

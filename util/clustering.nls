@@ -36,7 +36,9 @@ to clustering
   count-clusters
   ask turtles with [cluster > 0] [set label cluster]
 end
-
+to-report happy?
+  report calc-fraction-of-friends myself = 1
+end
 to propagate-cluster [me cluster-id]
   ask me [ set cluster cluster-id ]
   let my-color [color-group] of me
