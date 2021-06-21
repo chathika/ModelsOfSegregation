@@ -1,7 +1,7 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls" "util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
+__includes ["util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
 
 extensions [array csv table]
 globals [
