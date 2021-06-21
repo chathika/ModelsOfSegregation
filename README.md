@@ -3,7 +3,7 @@
 This is an exploration of the patterns of segregation producable by extensions of Schelling's model of racial segregation[1].
 
 ## Models:
-1. SimpleSchellingTwoSubgroups_HatnaAdaption.nlogo
+1. SimpleSchellingTwoSubgroups_Hatna.nlogo
 
 	An adaption of the Schelling Model by Erez Hatna [2] where agents move towards new residential sites that have potential to improve their utility. 
   
