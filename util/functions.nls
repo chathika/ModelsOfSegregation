@@ -130,7 +130,13 @@ to-report variance-home-utility-of-residents-here [patch-to-evaluate]
     ]
   ]
   if (length home-utilities-neighborhood) < 2 [report 0]
-  report variance home-utilities-neighborhood
+  let val 0
+  carefully [set val variance home-utilities-neighborhood][
+  
+  print(who)
+  print list pxcor pycor
+  ]
+  report val
 end
 
 ;; reports the distance from the home-patch

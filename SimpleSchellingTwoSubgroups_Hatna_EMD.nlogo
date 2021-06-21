@@ -239,7 +239,7 @@ to-report calc-utility [patch-to-evaluate]
   ;carefully [
   set utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-   1 * (racial-utility get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate) ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+   1 * (calc-fraction-of-friends get-patch-to-evaluate) ;+ -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate); + 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
   ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
@@ -390,7 +390,7 @@ density
 density
 0
 1
-0.75
+0.9
 0.01
 1
 NIL
@@ -472,7 +472,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-1.0
+2.0
 1
 1
 NIL
@@ -546,7 +546,7 @@ INPUTBOX
 99
 376
 stopping-time
-1000.0
+10000.0
 1
 0
 Number
@@ -590,7 +590,7 @@ INPUTBOX
 133
 545
 tolerance-dist-blue
-0.185,0.5\n0.860,0.5
+0.185,1.0
 1
 1
 String
@@ -601,7 +601,7 @@ INPUTBOX
 286
 544
 tolerance-dist-green
-0.185,0.5\n0.860,0.5
+0.185,1.0
 1
 1
 String
