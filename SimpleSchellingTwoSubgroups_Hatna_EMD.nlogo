@@ -56,8 +56,8 @@ to setup
 
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
-  set-tolerance-distribution turtles with [color-group = 1] tolerance-dist-blue
-  set-tolerance-distribution turtles with [color-group = 2] tolerance-dist-green
+  ask turtles with [color-group = 1] [set tolerance tolerance-blue]
+  ask turtles with [color-group = 2] [set tolerance tolerance-green]
   color-by-color-group
   ask turtles [
    set lengths-of-residence table:make
@@ -311,31 +311,6 @@ to save-as-ascii-grid [file-name]
 
   file-close
 end
-
-;; assign the tolerance of turtles according to a given distribution
-;; set-of-turtles: an agentset of turtles
-;; distrib-string: string representing the distribution.
-;;
-to set-tolerance-distribution [set-of-turtles distribution-string]
-
-  let dist-list csv:from-string distribution-string ;; converts the text into a list of lists
-  ;; The first element of the list is the tolerance
-  ;; while the second is the fraction of that tolerance in the population
-  set dist-list shuffle dist-list
-  let turtle-counter 0
-  let list-item-counter 0
-  let cumulative-prob item 1 (item 0 dist-list) ;; the first prob of the PMF
-  ;; need to shuffle the the list
-
-  ask set-of-turtles [
-    set turtle-counter turtle-counter + 1
-    if turtle-counter > cumulative-prob * count set-of-turtles and list-item-counter + 1 < length dist-list [
-      set list-item-counter list-item-counter + 1
-      set cumulative-prob cumulative-prob + item 1 (item list-item-counter dist-list)
-    ]
-    set tolerance item 0 (item list-item-counter dist-list)
-  ]
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 209
@@ -513,10 +488,10 @@ NIL
 1
 
 BUTTON
-327
-382
-484
-415
+218
+375
+341
+408
 show-hide-c-areas
 ask turtles [set hidden? not hidden?]\nifelse [hidden?] of turtle 0 [ \n  color-areas\n]\n[\n  ask patches [\n    set pcolor black\n  ]\n  \n]
 NIL
@@ -584,33 +559,11 @@ empty-cells-to-evaluate-frac
 NIL
 HORIZONTAL
 
-INPUTBOX
-7
-398
-133
-545
-tolerance-dist-blue
-0.185,1.0
-1
-1
-String
-
-INPUTBOX
-142
-398
-286
-544
-tolerance-dist-green
-0.185,1.0
-1
-1
-String
-
 BUTTON
-333
-423
-482
-456
+218
+411
+341
+444
 NIL
 color-by-color-group
 NIL
@@ -624,10 +577,10 @@ NIL
 1
 
 BUTTON
-333
-462
-482
-495
+219
+447
+340
+480
 NIL
 color-by-tolerance
 NIL
@@ -639,6 +592,36 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+14
+387
+186
+420
+tolerance-green
+tolerance-green
+0
+1
+0.19
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+14
+424
+186
+457
+tolerance-blue
+tolerance-blue
+0
+1
+0.186
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
