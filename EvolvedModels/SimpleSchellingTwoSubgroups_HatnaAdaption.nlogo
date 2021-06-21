@@ -1,11 +1,13 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls" "util/Functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
+__includes ["../util/clustering.nls" "../util/functions.nls" "../util/C-Index.nls" "../util/MoransI.nls"]
 
-extensions [array csv]
+extensions [array csv table]
 globals [
   empty-patches-array;; an array of unoccupied patches
+  global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
+  max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computations
 ]
 
 turtles-own [
@@ -15,6 +17,8 @@ turtles-own [
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
   ;;;;variables important to clustering algorithm;;;;
   cluster ; The cluster id this turtle belongs to
+  lengths-of-residence ; The number of ticks this agent has occupied this patch
+  patch-being-evaluated ; A temporary variable to hold the patch being considered for utility calculation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ]
 
@@ -48,12 +52,18 @@ to setup
     set color-group 1
   ]
 
-  color-by-color-group
+
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
   set-tolerance-distribution turtles with [color-group = 1] tolerance-dist-blue
   set-tolerance-distribution turtles with [color-group = 2] tolerance-dist-green
-
+  color-by-color-group
+  ask turtles [
+   set lengths-of-residence table:make
+  ]
+  ;; set some globals required for utility function calculations
+  set global-max-tolerance max [tolerance] of turtles
+  set max-distance-between-patches (sqrt ( (world-height / 2) ^ 2 + (world-width / 2) ^ 2))
   reset-ticks
 end
 
@@ -158,15 +168,18 @@ to try-to-relocate
 
   ;; if the turte has found a patch
   if index-of-best-patch != -1 [
-     ;; Unhappy turtles move if the new patch is better than their home patch
-     if home-utility < 1 and utility-of-best-patch > home-utility [
-       relocate-to index-of-best-patch
-     ]
-     ;; Happy turtles will only move to another good patch
-     if home-utility = 1 and utility-of-best-patch = 1 [
-       relocate-to index-of-best-patch
-     ]
+    ;; Unhappy turtles move if the new patch is better than their home patch
+    if home-utility < 1 and utility-of-best-patch > home-utility [
+      relocate-to index-of-best-patch
+    ]
+    ;; Happy turtles will only move to another good patch
+    if home-utility = 1 and utility-of-best-patch = 1 [
+      relocate-to index-of-best-patch
+    ]
    ]
+  ; update the lengths-of-residence table for this turtle
+  let length-of-residence-here (table:get-or-default lengths-of-residence (list ([pxcor] of home-patch) ([pycor] of home-patch)) 0) + 1
+  table:put lengths-of-residence (list [pxcor] of home-patch [pycor] of home-patch) length-of-residence-here
 end
 
 
@@ -197,15 +210,39 @@ end
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
-  let fraction calc-fraction-of-friends patch-to-evaluate
-  let min-desired-fraction tolerance
+;  let fraction calc-fraction-of-friends patch-to-evaluate
+;  let min-desired-fraction tolerance
+;
+;  ifelse fraction < min-desired-fraction    [
+;    report fraction / min-desired-fraction
+;  ]
+;  [
+;    report 1; 1 represents an happy turtle
+;  ]
+  set patch-being-evaluated patch-to-evaluate
+  let utility-here 0
+  ;carefully [
+  set utility-here
+  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
+   1 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate) ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
+  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
 
-  ifelse fraction < min-desired-fraction    [
-    report fraction / min-desired-fraction
-  ]
-  [
-    report 1; 1 represents an happy turtle
-  ]
+    ; rest of the factors are as so:
+  ;calc-fraction-of-friends get-patch-to-evaluate
+  ;variance-neighborhood-tolerance get-patch-to-evaluate
+  ;mean-neighborhood-tolerance get-patch-to-evaluate
+  ;normalized-neighborhood-isolation get-patch-to-evaluate
+  ;distance-from-home-patch get-patch-to-evaluate
+  ;my-length-of-residence-here get-patch-to-evaluate
+;my-tendency-to-move get-patch-to-evaluate
+  ;][set utility-here 0]
+
+  report utility-here
 end
 
 
@@ -338,7 +375,7 @@ density
 density
 0
 1
-0.98
+0.75
 0.01
 1
 NIL
@@ -420,7 +457,7 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-2.0
+1.0
 1
 1
 NIL
@@ -494,7 +531,7 @@ INPUTBOX
 99
 376
 stopping-time
-50000.0
+1000.0
 1
 0
 Number
@@ -526,29 +563,11 @@ empty-cells-to-evaluate-frac
 empty-cells-to-evaluate-frac
 0
 1
-0.2
+1.0
 0.05
 1
 NIL
 HORIZONTAL
-
-PLOT
-844
-109
-1119
-264
-Cluster Count
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" "if update-graph? [clustering]"
-PENS
-"pen-0" 1.0 0 -7500403 true "" "if update-graph? [plot length remove-duplicates [cluster] of turtles with [ cluster > 0]]"
 
 INPUTBOX
 7
@@ -556,7 +575,7 @@ INPUTBOX
 133
 545
 tolerance-dist-blue
-0.2,0.2\n0.5,0.7\n0.9,0.1
+0.185,0.5\n0.860,0.5
 1
 1
 String
@@ -567,7 +586,7 @@ INPUTBOX
 286
 544
 tolerance-dist-green
-0.2,0.5\n0.5,0.5
+0.185,0.5\n0.860,0.5
 1
 1
 String
@@ -953,7 +972,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.3
+NetLogo 6.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1079,6 +1098,108 @@ set min-desired-fraction-of-subgroup-2 min-desired-fraction-of-subgroup-1</setup
     </enumeratedValueSet>
     <enumeratedValueSet variable="neighborhood-distance">
       <value value="2"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="Minus2Move2Race3Isol3TolDiv2SatDiv" repetitions="1" runMetricsEveryStep="true">
+    <setup>set density 0.5 + (0.05 * random 10)
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>c-index</metric>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.8500000000000001"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="Minus2Move3Isol3TolDiv" repetitions="100" runMetricsEveryStep="false">
+    <setup>set density 0.5 + (0.05 * random 10)
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>c-index</metric>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.8500000000000001"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="Race" repetitions="100" runMetricsEveryStep="false">
+    <setup>set density 0.5 + (0.05 * random 10)
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>c-index</metric>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.8500000000000001"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
