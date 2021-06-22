@@ -11,9 +11,8 @@ to-report moran-I [calc-by-group?]
 
   ask turtles ; calculating the average value, variation and n:
   [
-    foreach neighboring-patches [
-      cur-patch ->
-      let neighbor-resident [resident] of cur-patch
+    ask neighboring-patches [
+      let neighbor-resident [resident] of self
       if neighbor-resident != nobody [
         ask neighbor-resident [
           let value 0
@@ -43,7 +42,7 @@ to-report moran-I [calc-by-group?]
   ask turtles
   [
 
-    let no-Of-neighbors length neighboring-patches ; no of turtles in the neighborhood
+    let no-of-neighbors count neighboring-patches ; no of turtles in the neighborhood
     let current-turtle-value 0
 
     ifelse calc-by-group? [
@@ -54,9 +53,8 @@ to-report moran-I [calc-by-group?]
     ]
 
 
-    foreach neighboring-patches [
-      [cur-patch] ->
-      let neighbor-resident [resident] of cur-patch
+    ask neighboring-patches [
+      let neighbor-resident resident
       if neighbor-resident != nobody [
         ask neighbor-resident [
           ;; "current-turtle-value" is the value of the turtle that is in the "center" while
