@@ -55,7 +55,7 @@ to setup
 
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
-  ask turtles [ifelse one-of [true false] [set tolerance tolerance-high][set tolerance tolerance-low]]
+  ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
   color-by-color-group
   ask turtles [
    set my-residences patch-set patch-here
@@ -424,7 +424,7 @@ PENS
 "IC" 1.0 0 -5298144 true "" "if update-graph?  [\n  let m moran-I true\n  if m != -1 [\n    plotxy ticks m\n  ]\n]"
 "IT" 1.0 0 -14730904 true "" "if update-graph? [\n  let m moran-I false\n  if m != -1 [\n    plotxy ticks m\n  ]\n]"
 "C" 1.0 0 -15040220 true "" "if update-graph?  [\n  plotxy ticks c-index\n]"
-"pen-3" 1.0 0 -7500403 true "" "if update-graph? [\nplot mixed-coexistence\n]"
+"M" 1.0 0 -7500403 true "" "if update-graph? [\nplotxy ticks mixed-coexistence\n]"
 
 SLIDER
 14
@@ -465,7 +465,7 @@ SWITCH
 420
 update-graph?
 update-graph?
-0
+1
 1
 -1000
 
@@ -552,8 +552,8 @@ SLIDER
 387
 186
 420
-tolerance-high
-tolerance-high
+tolerance-group-A
+tolerance-group-A
 0
 1
 0.29
@@ -567,8 +567,8 @@ SLIDER
 424
 186
 457
-tolerance-low
-tolerance-low
+tolerance-group-B
+tolerance-group-B
 0
 1
 0.3
