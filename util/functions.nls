@@ -76,9 +76,9 @@ end
 to-report my-tendency-to-move [patch-to-evaluate]
   if ticks = 0 [report 0]
   ifelse patch-being-evaluated = home-patch [
-    report 0;1 - (length table:keys lengths-of-residence) / (ticks + 1)
+    report 1 - (sum my-recent-moves) / max-history-length
   ][
-    report (count my-residences) / count patches
+    report (sum my-recent-moves) / max-history-length
   ]
 end
 
