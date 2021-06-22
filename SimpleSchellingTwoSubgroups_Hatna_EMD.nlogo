@@ -7,7 +7,7 @@ extensions [array csv table]
 globals [
   empty-patches-array;; an array of unoccupied patches
   global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
-  max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computations
+  max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computationsW
 ]
 
 turtles-own [
@@ -16,9 +16,8 @@ turtles-own [
   home-utility-unassigned; temporary variable to prevent compounding
   color-group; the group membership (1 or 2), represent the turtles color
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
-  ;;;;variables important to clustering algorithm;;;;
-  cluster ; The cluster id this turtle belongs to
-  lengths-of-residence ; The number of ticks this agent has occupied this patch
+  my-residences ; set of patches this agent has lived in
+  ticks-at-current-residence ; ticks spent in current residence
   patch-being-evaluated ; A temporary variable to hold the patch being considered for utility calculation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ]
@@ -35,7 +34,7 @@ to setup
   ask patches [
     ;; setting residet as null
     set resident nobody
-    set neighboring-patches get-neighbors
+    set neighboring-patches patch-set get-neighbors
   ]
   ;; creating the turtles
   let number-of-turtles density * count patches
@@ -56,22 +55,22 @@ to setup
 
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
-  ask turtles with [color-group = 1] [set tolerance tolerance-blue]
-  ask turtles with [color-group = 2] [set tolerance tolerance-green]
+  ask turtles [ifelse one-of [true false] [set tolerance tolerance-high][set tolerance tolerance-low]]
   color-by-color-group
   ask turtles [
-   set lengths-of-residence table:make
+   set my-residences patch-set patch-here
+   set ticks-at-current-residence 0
   ]
   ;; set some globals required for utility function calculations
   set global-max-tolerance max [tolerance] of turtles
   set max-distance-between-patches (sqrt ( (world-height / 2) ^ 2 + (world-width / 2) ^ 2))
   reset-ticks
+
 end
 
 
 ;; Patch procedure
 ;; Reports a list of neighboring patches of the calling patch.
-
 to-report get-neighbors
   let neighbors-list [];; an enpty list to store the neighboring patches
 
@@ -124,8 +123,8 @@ to go
     if interested-to-relocate? [
       try-to-relocate
     ]
+    set ticks-at-current-residence ticks-at-current-residence + 1
   ]
-
   tick
 
   if ticks >= stopping-time [
@@ -193,8 +192,8 @@ to try-to-relocate
     ]
    ]
   ; update the lengths-of-residence table for this turtle
-  let length-of-residence-here (table:get-or-default lengths-of-residence (list ([pxcor] of home-patch) ([pycor] of home-patch)) 0) + 1
-  table:put lengths-of-residence (list [pxcor] of home-patch [pycor] of home-patch) length-of-residence-here
+  ;let length-of-residence-here (table:get-or-default lengths-of-residence (list ([pxcor] of home-patch) ([pycor] of home-patch)) 0) + 1
+  ;table:put lengths-of-residence (list [pxcor] of home-patch [pycor] of home-patch) length-of-residence-here
 end
 
 
@@ -220,43 +219,31 @@ to relocate-to [index-of-patch]
   ;; The turtle loctates itself
   ;; in the center of the new patch
   move-to destination-patch
+
+  ;; add patch to unique-residences
+  set my-residences patch-set list my-residences destination-patch
+  set ticks-at-current-residence 0
 end
 
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
-;  let fraction calc-fraction-of-friends patch-to-evaluate
-;  let min-desired-fraction tolerance
-;
-;  ifelse fraction < min-desired-fraction    [
-;    report fraction / min-desired-fraction
-;  ]
-;  [
-;    report 1; 1 represents an happy turtle
-;  ]
-  set patch-being-evaluated patch-to-evaluate
-  let utility-here 0
-  ;carefully [
-  set utility-here
-  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-   1 * (calc-fraction-of-friends get-patch-to-evaluate) ;+ -2 * (my-tendency-to-move get-patch-to-evaluate) + 3 * (normalized-neighborhood-isolation get-patch-to-evaluate); + 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -1 * (my-tendency-to-move get-patch-to-evaluate) + 1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
-  ;2 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (variance-home-utility-of-residents-here get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate) + 2 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate) +  1 * (normalized-neighborhood-isolation get-patch-to-evaluate) + 1 * (variance-neighborhood-tolerance get-patch-to-evaluate)
 
-    ; rest of the factors are as so:
+  set patch-being-evaluated patch-to-evaluate
+  let utility-here
+  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
+  ; 1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate);  + 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
+  ;1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * my-tendency-to-move get-patch-to-evaluate
+  1 * (calc-fraction-of-friends get-patch-to-evaluate) + mean-neighborhood-age get-patch-to-evaluate - 2 * (my-tendency-to-move get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate)
+  ; rest of the factors are as so:
   ;calc-fraction-of-friends get-patch-to-evaluate
   ;variance-neighborhood-tolerance get-patch-to-evaluate
   ;mean-neighborhood-tolerance get-patch-to-evaluate
   ;normalized-neighborhood-isolation get-patch-to-evaluate
   ;distance-from-home-patch get-patch-to-evaluate
   ;my-length-of-residence-here get-patch-to-evaluate
-;my-tendency-to-move get-patch-to-evaluate
-  ;][set utility-here 0]
-
+  ;my-tendency-to-move get-patch-to-evaluate
   report utility-here
 end
 
@@ -315,11 +302,11 @@ end
 GRAPHICS-WINDOW
 209
 12
-556
-360
+503
+307
 -1
 -1
-6.65
+5.61
 1
 10
 1
@@ -365,7 +352,7 @@ density
 density
 0
 1
-0.9
+0.91
 0.01
 1
 NIL
@@ -419,10 +406,10 @@ NIL
 1
 
 PLOT
-566
-12
-837
-150
+519
+10
+847
+219
 plot 1
 NIL
 NIL
@@ -437,6 +424,7 @@ PENS
 "IC" 1.0 0 -5298144 true "" "if update-graph?  [\n  let m moran-I true\n  if m != -1 [\n    plotxy ticks m\n  ]\n]"
 "IT" 1.0 0 -14730904 true "" "if update-graph? [\n  let m moran-I false\n  if m != -1 [\n    plotxy ticks m\n  ]\n]"
 "C" 1.0 0 -15040220 true "" "if update-graph?  [\n  plotxy ticks c-index\n]"
+"pen-3" 1.0 0 -7500403 true "" "if update-graph? [\nplot mixed-coexistence\n]"
 
 SLIDER
 14
@@ -447,51 +435,17 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-2.0
+1.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-839
-50
-996
-83
-test neighborhoods
-ask patches [\n  set pcolor black\n]\n\nask patch 3 23 [\n  set pcolor yellow\n  foreach neighboring-patches [\n    [cur-patch] ->\n    ask cur-patch [\n      set pcolor blue\n    ]\n  ]\n]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-838
-10
-942
-43
-test shuffle
-shuffle-empty-patches-array 10\nprint empty-patches-array
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-218
-375
-341
-408
+276
+346
+399
+379
 show-hide-c-areas
 ask turtles [set hidden? not hidden?]\nifelse [hidden?] of turtle 0 [ \n  color-areas\n]\n[\n  ask patches [\n    set pcolor black\n  ]\n  \n]
 NIL
@@ -505,10 +459,10 @@ NIL
 1
 
 SWITCH
-636
-320
-788
-353
+520
+387
+672
+420
 update-graph?
 update-graph?
 0
@@ -527,11 +481,11 @@ stopping-time
 Number
 
 PLOT
-564
-160
-839
-310
-Distribution of Number of Friends
+516
+229
+791
+379
+Home Utility
 NIL
 NIL
 0.0
@@ -542,7 +496,7 @@ true
 false
 "" ""
 PENS
-"default" 0.1 1 -16777216 true "" "if update-graph? [ \n  histogram [calc-fraction-of-friends patch-here] of turtles\n]"
+"default" 0.1 1 -16777216 true "" "if update-graph? and ticks > 1 [ \n  histogram [home-utility] of turtles\n]"
 
 SLIDER
 0
@@ -560,10 +514,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-218
-411
-341
-444
+276
+382
+399
+415
 NIL
 color-by-color-group
 NIL
@@ -577,10 +531,10 @@ NIL
 1
 
 BUTTON
-219
-447
-340
-480
+277
+418
+398
+451
 NIL
 color-by-tolerance
 NIL
@@ -598,11 +552,11 @@ SLIDER
 387
 186
 420
-tolerance-green
-tolerance-green
+tolerance-high
+tolerance-high
 0
 1
-0.19
+0.29
 0.01
 1
 NIL
@@ -613,11 +567,11 @@ SLIDER
 424
 186
 457
-tolerance-blue
-tolerance-blue
+tolerance-low
+tolerance-low
 0
 1
-0.186
+0.3
 0.01
 1
 NIL
