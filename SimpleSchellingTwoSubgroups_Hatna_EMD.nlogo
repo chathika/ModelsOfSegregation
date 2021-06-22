@@ -1,21 +1,24 @@
 ;; An implementation of the Schelling model of Segergation
 ;; By Erez Hatna (erezh51@gmail.com)
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
-__includes ["util/clustering.nls"]
-extensions [array]
+__includes ["util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
+
+extensions [array csv table]
 globals [
   empty-patches-array;; an array of unoccupied patches
+  global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
+  max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computationsW
 ]
 
 turtles-own [
   home-patch; a reference to the home patch
   home-utility; the utility of the home patch
+  home-utility-unassigned; temporary variable to prevent compounding
   color-group; the group membership (1 or 2), represent the turtles color
-  tolerance-group; the tolerance group (either 1 and 2)
-
-  ;;;;variables important to clustering algorithm;;;;
-  cluster ; The cluster id this turtle belongs to
-  happy?
+  tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
+  my-residences ; set of patches this agent has lived in
+  ticks-at-current-residence ; ticks spent in current residence
+  patch-being-evaluated ; A temporary variable to hold the patch being considered for utility calculation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ]
 
@@ -28,21 +31,19 @@ patches-own [
 
 to setup
   clear-all
-  let mid-x (max([pxcor] of patches) + min ([pxcor] of patches) ) / 2
-
   ask patches [
     ;; setting residet as null
     set resident nobody
-    set neighboring-patches get-neighbors
+    set neighboring-patches patch-set get-neighbors
   ]
   ;; creating the turtles
   let number-of-turtles density * count patches
   ask n-of number-of-turtles patches [
     sprout 1 [
       set color-group 2; 2 represents green turtles
-      set tolerance-group 2 ;; setting the subgroup membership
       set home-patch myself ;; myself is the calling patch
       set resident self ;; the patch is now occupied by the turtle
+      set shape "square"
     ]
   ]
   ;; setting the group code of the code group 1 ("blue") turtles
@@ -51,27 +52,25 @@ to setup
     set color-group 1
   ]
 
-  ;; setting the membership of subgroup 1 turtles
-  let no-of-subgroup-1-turtles fraction-of-subgroup-1 *  count turtles
 
-  ask n-of no-of-subgroup-1-turtles turtles [
-   set tolerance-group 1
-  ]
-
-  set-turtles-color
   set empty-patches-array array:from-list sort patches with [resident = nobody]
 
-  if update-turtles-appearance? [
-    update-turtles-appearance
+  ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
+  color-by-color-group
+  ask turtles [
+   set my-residences patch-set patch-here
+   set ticks-at-current-residence 0
   ]
-
+  ;; set some globals required for utility function calculations
+  set global-max-tolerance max [tolerance] of turtles
+  set max-distance-between-patches (sqrt ( (world-height / 2) ^ 2 + (world-width / 2) ^ 2))
   reset-ticks
+
 end
 
 
 ;; Patch procedure
 ;; Reports a list of neighboring patches of the calling patch.
-
 to-report get-neighbors
   let neighbors-list [];; an enpty list to store the neighboring patches
 
@@ -94,46 +93,37 @@ to-report get-neighbors
   report  neighbors-list
 end
 
-;; Sets the colors of the turtles according to ther group and subgroup
-to set-turtles-color
+
+
+;; Sets the colors of the turtles according to ther group
+to color-by-color-group
   ask turtles [
-    set shape "square"
     ifelse color-group = 1 [
       set color blue
     ]
     [
       set color green
     ]
-
-    if tolerance-group = 2 [
-      set color color - 2
-    ]
   ]
 end
 
-;; Changes the shapes: a square for happy turtles
-;; and a circle for unhappy ones.
-to update-turtles-appearance
+to color-by-tolerance
   ask turtles [
-    ifelse calc-utility home-patch = 1 [
-      set shape "square 3"
-    ]
-    [
-      set shape "circle"
-    ]
+    set color red + tolerance * white
   ]
 end
 
 
 to go
+
+  calc-home-utilities
+
+  ; compare home utility with potential new home utilities
   ask turtles [
     if interested-to-relocate? [
       try-to-relocate
     ]
-  ]
-
-  if update-turtles-appearance? [
-    update-turtles-appearance
+    set ticks-at-current-residence ticks-at-current-residence + 1
   ]
   tick
 
@@ -142,12 +132,22 @@ to go
   ]
 end
 
+;; global procedure
+;; calcs home utilities for agents
+to calc-home-utilities
+  ; calc home utilities
+  ask turtles [
+    set home-utility-unassigned calc-utility home-patch
+  ]
+  ; assign home utilities. Done in two steps since some factors require home-utility of other agents.
+  ask turtles [
+   set home-utility home-utility-unassigned
+  ]
+end
 
 ;; turtle procedure
 ;; reports true if the turtle is intersted to relocate
 to-report interested-to-relocate?
-  ;; the utility of the home patch
-  set home-utility calc-utility home-patch
   report
     home-utility < 1 or
       (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
@@ -160,7 +160,7 @@ to try-to-relocate
   ;; The turtle considers a given fraction of the empty patches
   let no-of-patches-to-evaluate empty-cells-to-evaluate-frac * array:length empty-patches-array
 
-  ;; shuffeling the first "no-of-patches-to-evaluate" patches
+  ;; shuffling the first "no-of-patches-to-evaluate" patches
   shuffle-empty-patches-array (no-of-patches-to-evaluate)
 
   let utility-of-best-patch -1
@@ -182,15 +182,18 @@ to try-to-relocate
 
   ;; if the turte has found a patch
   if index-of-best-patch != -1 [
-     ;; Unhappy turtles move if the new patch is better than their home patch
-     if home-utility < 1 and utility-of-best-patch > home-utility [
-       relocate-to index-of-best-patch
-     ]
-     ;; Happy turtles will only move to another good patch
-     if home-utility = 1 and utility-of-best-patch = 1 [
-       relocate-to index-of-best-patch
-     ]
+    ;; Unhappy turtles move if the new patch is better than their home patch
+    if home-utility < 1 and utility-of-best-patch > home-utility [
+      relocate-to index-of-best-patch
+    ]
+    ;; Happy turtles will only move to another good patch
+    if home-utility = 1 and utility-of-best-patch = 1 [
+      relocate-to index-of-best-patch
+    ]
    ]
+  ; update the lengths-of-residence table for this turtle
+  ;let length-of-residence-here (table:get-or-default lengths-of-residence (list ([pxcor] of home-patch) ([pycor] of home-patch)) 0) + 1
+  ;table:put lengths-of-residence (list [pxcor] of home-patch [pycor] of home-patch) length-of-residence-here
 end
 
 
@@ -216,53 +219,34 @@ to relocate-to [index-of-patch]
   ;; The turtle loctates itself
   ;; in the center of the new patch
   move-to destination-patch
+
+  ;; add patch to unique-residences
+  set my-residences patch-set list my-residences destination-patch
+  set ticks-at-current-residence 0
 end
 
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
-  let fraction calc-fraction-of-friends patch-to-evaluate
-  let min-desired-fraction 0
-  ifelse tolerance-group = 1 [
-    set min-desired-fraction min-desired-fraction-of-subgroup-1
-  ]
-  [
-    set min-desired-fraction min-desired-fraction-of-subgroup-2
-  ]
 
-  ifelse fraction < min-desired-fraction    [
-    report fraction / min-desired-fraction
-  ]
-  [
-    report 1; 1 represents an happy turtle
-  ]
+  set patch-being-evaluated patch-to-evaluate
+  let utility-here
+  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
+  ; 1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate);  + 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
+  ;1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * my-tendency-to-move get-patch-to-evaluate
+  1 * (calc-fraction-of-friends get-patch-to-evaluate) + mean-neighborhood-age get-patch-to-evaluate - 2 * (my-tendency-to-move get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate)
+  ; rest of the factors are as so:
+  ;calc-fraction-of-friends get-patch-to-evaluate
+  ;variance-neighborhood-tolerance get-patch-to-evaluate
+  ;mean-neighborhood-tolerance get-patch-to-evaluate
+  ;normalized-neighborhood-isolation get-patch-to-evaluate
+  ;distance-from-home-patch get-patch-to-evaluate
+  ;my-length-of-residence-here get-patch-to-evaluate
+  ;my-tendency-to-move get-patch-to-evaluate
+  report utility-here
 end
 
-;; Turtle Procedure
-;; The turtle calculates the fraction of friends in the neighborhood of a given patch
-to-report calc-fraction-of-friends [patch-to-evaluate]
-  let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let no-of-friends 0
-  let no-of-neighbors 0
-
-  foreach neighbor-patches [
-    [cur-patch] ->
-    let neighbor-resident [resident] of cur-patch
-    if neighbor-resident != nobody [
-      set no-of-neighbors no-of-neighbors + 1
-      if [color-group] of neighbor-resident = color-group [
-        set no-of-friends no-of-friends + 1
-      ]
-    ]
-  ]
-
-  ifelse no-of-neighbors > 0 [
-    report no-of-friends /  no-of-neighbors
-  ]
-  [
-    report 0 ;; In case the neighborhood is empty, report 0.
-  ]
-end
 
 ;; randomizes the order of the empty patch array
 ;; only the first "no-of-element" are randomized
@@ -283,205 +267,10 @@ to shuffle-empty-patches-array [no-of-elements]
 end
 
 
-;; Calculates the Moran's I index (spatial autocorrelation of the color pattern)
-;; calc-by-group?: if true, the index is caclulated by group, if false it is calculated by subgroup (toleance)
-to-report moran-I [calc-by-group?]
-  let n 0 ; number of turtles with at least one neighbor
-  let sum-of-values 0
-  let sum-of-squares 0
-
-
-  ask turtles ; calculating the average value, variation and n:
-  [
-    foreach neighboring-patches [
-      cur-patch ->
-      let neighbor-resident [resident] of cur-patch
-      if neighbor-resident != nobody [
-        ask neighbor-resident [
-          let value 0
-          ifelse calc-by-group? [
-            set value color-group
-          ]
-          [
-            set value tolerance-group
-          ]
-
-          set n n + 1
-          set sum-of-values sum-of-values + value
-          set sum-of-squares sum-of-squares + value * value
-        ]
-      ]
-    ]
-  ]
-
-  let average sum-of-values / n
-  let variation sum-of-squares - sum-Of-Values * sum-of-values / n
-
-
-  ; calculating the covariation
-  let covariation 0
-  let sum-of-weights  0
-
-  ask turtles
-  [
-
-    let no-Of-neighbors length neighboring-patches ; no of turtles in the neighborhood
-    let current-turtle-value 0
-
-    ifelse calc-by-group? [
-      set current-turtle-value color-group
-    ]
-    [
-      set current-turtle-value tolerance-group
-    ]
-
-
-    foreach neighboring-patches [
-      [cur-patch] ->
-      let neighbor-resident [resident] of cur-patch
-      if neighbor-resident != nobody [
-        ask neighbor-resident [
-          ;; "current-turtle-value" is the value of the turtle that is in the "center" while
-          ;; "neighbor-value" is the value of one of its neighbors:
-
-          let neighbor-value 0
-          ifelse calc-by-group? [
-            set neighbor-value color-group
-          ]
-          [
-            set neighbor-value tolerance-group
-          ]
-
-          set covariation covariation + (current-turtle-value - average) * (neighbor-value - average) / no-of-neighbors
-          set sum-of-weights sum-Of-weights + 1 / no-of-Neighbors
-        ]
-      ]
-    ]
-  ]
-
-  ifelse variation * sum-of-weights > 0 [
-    report n * covariation / (variation * sum-of-weights)
-  ]
-  [
-    report -1
-  ]
-end
-
-;; reports the c-index
-to-report c-index
-  mark-areas
-  let size-of-blue-patch 0
-  let size-of-green-patch 0
-  let size-of-integrated-patch 0
-  let total-size 0
-
-  ask patches [
-
-    set total-size total-size + 1
-    if c-index-area = 1 [
-      set size-of-blue-patch size-of-blue-patch + 1
-    ]
-
-    if c-index-area = 2 [
-      set size-of-green-patch size-of-green-patch + 1
-    ]
-
-    if c-index-area = 3 [
-      set size-of-integrated-patch size-of-integrated-patch + 1
-    ]
-  ]
-
-
-  report (min (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))) / total-size
-
-end
-
-
-;; Marks the C index areas:
-;; 1 represents homogeneous Blue area
-;; 2 represents homogeneous Green area
-;; 3 represents an integrated area
-;; 4 represents the boundary
-to mark-areas
-  ask patches
-  [
-    set c-index-area 3 ; before marking the turtles, we set the values of all of them to 3 (which represents integrated area)
-  ]
-
-  mark-homogeneous-areas
-  mark-homogeneous-boundary
-
-end
-
-
-
-
-
-;; marks pathces which are in homogeneous area for a given agent group
-;; A patch is marked if the following conditions are met:
-;;       1. It is occupied by a turtle
-;;       2. The neighborhood is not empty and all the neighbors belong to the group of the turtle
-;; The patches are marked by setting the c-index-area variable to the turtle's group code
-
-to mark-homogeneous-areas
-  ask patches [
-    if resident != nobody [
-      ask resident [
-       if calc-fraction-of-friends myself = 1 [
-         set c-index-area color-group
-       ]
-      ]
-    ]
-  ]
-end
-
-
-;; Marks by 4 any patch with c-index-area =3 which has at least one neighbor which is part of
-;; the homogeneous area (marked by 1 or 2, i,e, the group code of the turtles)
-to mark-homogeneous-boundary
-  ask patches with [c-index-area = 3] [
-   let no-of-homo-neighbors 0
-   foreach neighboring-patches [
-      [cur-patch] ->
-     ask cur-patch [
-       if c-index-area = 1 or c-index-area = 2  [
-         set no-of-homo-neighbors no-of-homo-neighbors + 1
-       ]
-     ]
-   ]
-   if no-of-homo-neighbors > 0 [
-     set c-index-area 4
-   ]
-
-  ]
-end
-
-
-
-to color-areas
-  mark-areas
-  ask patches [
-    if c-index-area = 1 [
-      set pcolor blue
-    ]
-
-    if c-index-area = 2 [
-      set pcolor green
-    ]
-
-    if c-index-area = 3 [
-      set pcolor red
-    ]
-
-    if c-index-area = 4 [
-      set pcolor grey
-    ]
-]
-end
-
 ;; saves the patches information as ESRI ascii grid
 ;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
-to save-as-ascii-grid [file-name region-id]
+;; Todo: enable saving the tolerance pattern
+to save-as-ascii-grid [file-name]
   file-open file-name
   ;; saving the header
   file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
@@ -513,11 +302,11 @@ end
 GRAPHICS-WINDOW
 209
 12
-556
-360
+503
+307
 -1
 -1
-6.65
+5.61
 1
 10
 1
@@ -563,7 +352,7 @@ density
 density
 0
 1
-0.98
+0.91
 0.01
 1
 NIL
@@ -580,21 +369,6 @@ fraction-of-blue
 1
 0.5
 0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-10
-392
-343
-425
-min-desired-fraction-of-subgroup-1
-min-desired-fraction-of-subgroup-1
-0
-1
-0.185
-0.005
 1
 NIL
 HORIZONTAL
@@ -632,10 +406,10 @@ NIL
 1
 
 PLOT
-566
-12
-837
-150
+519
+10
+847
+219
 plot 1
 NIL
 NIL
@@ -650,6 +424,7 @@ PENS
 "IC" 1.0 0 -5298144 true "" "if update-graph?  [\n  let m moran-I true\n  if m != -1 [\n    plotxy ticks m\n  ]\n]"
 "IT" 1.0 0 -14730904 true "" "if update-graph? [\n  let m moran-I false\n  if m != -1 [\n    plotxy ticks m\n  ]\n]"
 "C" 1.0 0 -15040220 true "" "if update-graph?  [\n  plotxy ticks c-index\n]"
+"M" 1.0 0 -7500403 true "" "if update-graph? [\nplotxy ticks mixed-coexistence\n]"
 
 SLIDER
 14
@@ -660,109 +435,17 @@ neighborhood-distance
 neighborhood-distance
 1
 8
-2.0
+1.0
 1
 1
 NIL
 HORIZONTAL
 
-SLIDER
-10
-432
-343
-465
-min-desired-fraction-of-subgroup-2
-min-desired-fraction-of-subgroup-2
-0
-1
-0.86
-0.005
-1
-NIL
-HORIZONTAL
-
-SLIDER
-12
-133
-205
-166
-fraction-of-subgroup-1
-fraction-of-subgroup-1
-0
-1
-0.5
-0.01
-1
-NIL
-HORIZONTAL
-
 BUTTON
-60
-470
-194
-503
-Copy Tolerance
-set min-desired-fraction-of-subgroup-2 min-desired-fraction-of-subgroup-1
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-350
-434
-589
-467
-update-turtles-appearance?
-update-turtles-appearance?
-0
-1
--1000
-
-BUTTON
-839
-50
-996
-83
-test neighborhoods
-ask patches [\n  set pcolor black\n]\n\nask patch 3 23 [\n  set pcolor yellow\n  foreach neighboring-patches [\n    [cur-patch] ->\n    ask cur-patch [\n      set pcolor blue\n    ]\n  ]\n]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-838
-10
-942
-43
-test shuffle
-shuffle-empty-patches-array 10\nprint empty-patches-array
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-373
-392
-530
-425
+276
+346
+399
+379
 show-hide-c-areas
 ask turtles [set hidden? not hidden?]\nifelse [hidden?] of turtle 0 [ \n  color-areas\n]\n[\n  ask patches [\n    set pcolor black\n  ]\n  \n]
 NIL
@@ -776,13 +459,13 @@ NIL
 1
 
 SWITCH
-636
-320
-788
-353
+520
+387
+672
+420
 update-graph?
 update-graph?
-0
+1
 1
 -1000
 
@@ -792,17 +475,17 @@ INPUTBOX
 99
 376
 stopping-time
-50000.0
+10000.0
 1
 0
 Number
 
 PLOT
-564
-160
-839
-310
-Distribution of Number of Friends
+516
+229
+791
+379
+Home Utility
 NIL
 NIL
 0.0
@@ -813,7 +496,7 @@ true
 false
 "" ""
 PENS
-"default" 0.1 1 -16777216 true "" "if update-graph? [ \n  histogram [calc-fraction-of-friends patch-here] of turtles\n]"
+"default" 0.1 1 -16777216 true "" "if update-graph? and ticks > 1 [ \n  histogram [home-utility] of turtles\n]"
 
 SLIDER
 0
@@ -824,38 +507,20 @@ empty-cells-to-evaluate-frac
 empty-cells-to-evaluate-frac
 0
 1
-0.2
+1.0
 0.05
 1
 NIL
 HORIZONTAL
 
-PLOT
-844
-109
-1119
-264
-Cluster Count
-NIL
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plot length remove-duplicates [cluster] of turtles with [ cluster > 0]"
-
 BUTTON
-842
-268
-927
-301
-Cluster
-ask turtles[set happy? ifelse-value (home-utility = 1)[true][false]]\nclustering
-T
+276
+382
+399
+415
+NIL
+color-by-color-group
+NIL
 1
 T
 OBSERVER
@@ -864,6 +529,53 @@ NIL
 NIL
 NIL
 1
+
+BUTTON
+277
+418
+398
+451
+NIL
+color-by-tolerance
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+14
+387
+186
+420
+tolerance-group-A
+tolerance-group-A
+0
+1
+0.29
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+14
+424
+186
+457
+tolerance-group-B
+tolerance-group-B
+0
+1
+0.3
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1212,7 +924,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1294,6 +1006,152 @@ set min-desired-fraction-of-subgroup-2 min-desired-fraction-of-subgroup-1</setup
     <steppedValueSet variable="min-desired-fraction-of-subgroup-2" first="-0.001" step="0.041666667" last="1"/>
     <enumeratedValueSet variable="update-graph?">
       <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="min-desired-fraction-of-subgroup-2">
+      <value value="0.86"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.98"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="50000"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.2 0.5\n0.5 0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-turtles-appearance?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.2 0.5\n0.5 0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="fraction-of-subgroup-1">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-desired-fraction-of-subgroup-1">
+      <value value="0.185"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="2"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="Minus2Move2Race3Isol3TolDiv2SatDiv" repetitions="1" runMetricsEveryStep="true">
+    <setup>set density 0.5 + (0.05 * random 10)
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>c-index</metric>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.8500000000000001"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="Minus2Move3Isol3TolDiv" repetitions="100" runMetricsEveryStep="false">
+    <setup>set density 0.5 + (0.05 * random 10)
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>c-index</metric>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.8500000000000001"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="Race" repetitions="100" runMetricsEveryStep="false">
+    <setup>set density 0.5 + (0.05 * random 10)
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>c-index</metric>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.8500000000000001"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="empty-cells-to-evaluate-frac">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-green">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tolerance-dist-blue">
+      <value value="&quot;0.125,0.5\n0.833,0.5&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

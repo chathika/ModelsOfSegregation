@@ -1,0 +1,132 @@
+;; Function that determines how agents evaulates location
+
+;; The turtle calculates the fraction of friends in the neighborhood of a given patch
+;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report calc-fraction-of-friends [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let my-group color-group
+  let no-of-friends count neighbor-patches with [any? (turtles-here with [color-group = my-group])]
+  let no-of-neighbors count neighbor-patches with [any? turtles-here]
+  report ifelse-value (no-of-neighbors > 0)[no-of-friends /  no-of-neighbors][0]
+end
+
+;; The turtle compares fraction of friends in neighborhood of given patch against their tolerance
+;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report racial-utility [patch-to-evaluate]
+  let fraction calc-fraction-of-friends patch-to-evaluate
+  report ifelse-value fraction < tolerance [fraction / tolerance][1]
+end
+
+;; turtle procedure
+;; reports the normalized variance in tolerance in the patch neighborhood
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report variance-neighborhood-tolerance [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value (length tolerances > 1) [variance tolerances] [0]
+end
+
+;; turtle procedure
+;; reports the mean tolerance in the patch neighborhood
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report mean-neighborhood-tolerance [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value (length tolerances > 0) [mean tolerances] [0]
+end
+
+;; turtles procedure
+;; reports the normalized isolation of the patch neighborhood
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report neighborhood-isolation [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let no-of-isolated-patches count neighbor-patches with [resident = nobody]
+  report no-of-isolated-patches / count neighbor-patches
+end
+
+;; reports the mean of the home-utility experienced by residents in this neighborhood
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report mean-home-utility-of-neighborhood [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value (length home-utilities > 0) [mean home-utilities] [0]
+end
+
+;; reports the variance of the home-utility experienced by residents in this neighborhood
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report variance-home-utility-of-neighborhood [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value (length home-utilities > 1) [variance home-utilities] [0]
+end
+
+;; reports the distance from the home-patch
+;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report distance-from-home-patch [patch-to-evaluate]
+  report [distance patch-to-evaluate] of home-patch / max-distance-between-patches
+end
+
+;; reports number of moves / ticks if patch-to-evaluate is not home-patch
+;; reports 1-(moves/ticks) if patch-to-evaluate is home-patch
+;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report my-tendency-to-move [patch-to-evaluate]
+  if ticks = 0 [report 0]
+  ifelse patch-being-evaluated = home-patch [
+    report 0;1 - (length table:keys lengths-of-residence) / (ticks + 1)
+  ][
+    report (count my-residences) / count patches
+  ]
+end
+
+;; reports the mean neighbor age here
+;; turtle procedure
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report mean-neighborhood-age [patch-to-evaluate]
+  if ticks = 0 [report 0]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages / ticks][0]
+end
+
+
+;; reports the patch to evaluate
+;; @EMD @factor @return-type=patch
+to-report get-patch-to-evaluate
+  report patch-being-evaluated
+end
+
+
+
+;;;;;; operators ;;;;;;
+;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
+to-report combine [a b]
+  report (a  + b) / 2
+end
+;; run by a patch
+;; takes two subscore reporters and concats them with an addition operator
+;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,-
+to-report subtract [a b]
+  report (a - b) / 2
+end
+
+;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
+to-report multiply [a b]
+  report a * b
+end
+
+;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,-
+to-report divide [a b]
+  report a / b
+end
+
+
+;; reports true if the the utility of the neighbor would decrease if the calling turtle would reside in the neighbor's neighborhood 
+;; in other words, a true value indicates the the neighbor would prefer tha the turtle would not be her/his neighborhood
+;; turtle procedure
+to-report presence-decreases-utility? [neighbor]
+;;; not implemented  
+end
