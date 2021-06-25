@@ -255,12 +255,7 @@ to-report calc-utility [patch-to-evaluate]
   ;my-tendency-to-move get-patch-to-evaluate
   report utility-here
 end
-;; run by a patch
-;; takes two subscore reporters and concats them with an addition operator
-;; @EMD @operator @return-type=float @parameter-type=float @structure=-
-to-report negate [a]
-  report -1 * a
-end
+
 
 ;; randomizes the order of the empty patch array
 ;; only the first "no-of-element" are randomized
