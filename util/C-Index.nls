@@ -54,6 +54,7 @@ to-report mixed-coexistence
 
   ;; Area under the lorenz curve or 1 - Gini Coefficient
   let areas sort (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))
+  
   let b 0
   let cumulative-total 0
   foreach areas [
@@ -61,7 +62,7 @@ to-report mixed-coexistence
     set b b + (cumulative-total * 1) + (0.5 * a * 1) 
     set cumulative-total cumulative-total + a
   ]
-  report b / (0.5 * 3 * total-size)
+  report b / (0.5 * 3 * cumulative-total)
 end
 
 ;; Marks the C index areas:
