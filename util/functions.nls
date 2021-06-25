@@ -89,7 +89,7 @@ to-report mean-neighborhood-age [patch-to-evaluate]
   if ticks = 0 [report 0]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [resident != nobody]
-  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages / ticks][0]
+  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages / max-ticks-at-current-residence][0]
 end
 
 
@@ -108,9 +108,9 @@ to-report combine [a b]
 end
 ;; run by a patch
 ;; takes two subscore reporters and concats them with an addition operator
-;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,-
-to-report subtract [a b]
-  report (a - b) / 2
+;; @EMD @operator @return-type=float @parameter-type=float @structure=-
+to-report negate [a]
+  report -1 * a
 end
 
 ;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
