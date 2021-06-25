@@ -196,15 +196,12 @@ to try-to-relocate
       relocate-to index-of-best-patch
     ]
     ;; record a move
-    ;set my-recent-moves lput 1 my-recent-moves
+    set my-recent-moves lput 1 my-recent-moves
    ][
     ;; record no move
-    ;set my-recent-moves lput 0 my-recent-moves
+    set my-recent-moves lput 0 my-recent-moves
   ]
-  ;if (length my-recent-moves > max-history-length) [set my-recent-moves sublist my-recent-moves 1 max-history-length]
-  ; update the lengths-of-residence table for this turtle
-  ;let length-of-residence-here (table:get-or-default lengths-of-residence (list ([pxcor] of home-patch) ([pycor] of home-patch)) 0) + 1
-  ;table:put lengths-of-residence (list [pxcor] of home-patch [pycor] of home-patch) length-of-residence-here
+  if (length my-recent-moves > max-history-length) [set my-recent-moves sublist my-recent-moves 1 max-history-length]
 end
 
 
@@ -258,7 +255,12 @@ to-report calc-utility [patch-to-evaluate]
   ;my-tendency-to-move get-patch-to-evaluate
   report utility-here
 end
-
+;; run by a patch
+;; takes two subscore reporters and concats them with an addition operator
+;; @EMD @operator @return-type=float @parameter-type=float @structure=-
+to-report negate [a]
+  report -1 * a
+end
 
 ;; randomizes the order of the empty patch array
 ;; only the first "no-of-element" are randomized
