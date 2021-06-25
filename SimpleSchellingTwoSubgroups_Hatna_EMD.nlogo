@@ -8,6 +8,8 @@ globals [
   empty-patches-array;; an array of unoccupied patches
   global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
   max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computationsW
+  max-history-length
+  max-ticks-at-current-residence
 ]
 
 turtles-own [
@@ -16,7 +18,7 @@ turtles-own [
   home-utility-unassigned; temporary variable to prevent compounding
   color-group; the group membership (1 or 2), represent the turtles color
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
-  my-residences ; set of patches this agent has lived in
+  my-recent-moves ; set of patches this agent has lived in
   ticks-at-current-residence ; ticks spent in current residence
   patch-being-evaluated ; A temporary variable to hold the patch being considered for utility calculation
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -58,7 +60,8 @@ to setup
   ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
   color-by-color-group
   ask turtles [
-   set my-residences patch-set patch-here
+    set max-history-length history-length
+    set my-recent-moves (list)
    set ticks-at-current-residence 0
   ]
   ;; set some globals required for utility function calculations
@@ -124,7 +127,9 @@ to go
       try-to-relocate
     ]
     set ticks-at-current-residence ticks-at-current-residence + 1
+
   ]
+  set max-ticks-at-current-residence max [ticks-at-current-residence] of turtles
   tick
 
   if ticks >= stopping-time [
@@ -181,7 +186,7 @@ to try-to-relocate
   ]
 
   ;; if the turte has found a patch
-  if index-of-best-patch != -1 [
+  ifelse index-of-best-patch != -1 [
     ;; Unhappy turtles move if the new patch is better than their home patch
     if home-utility < 1 and utility-of-best-patch > home-utility [
       relocate-to index-of-best-patch
@@ -190,7 +195,13 @@ to try-to-relocate
     if home-utility = 1 and utility-of-best-patch = 1 [
       relocate-to index-of-best-patch
     ]
-   ]
+    ;; record a move
+    ;set my-recent-moves lput 1 my-recent-moves
+   ][
+    ;; record no move
+    ;set my-recent-moves lput 0 my-recent-moves
+  ]
+  ;if (length my-recent-moves > max-history-length) [set my-recent-moves sublist my-recent-moves 1 max-history-length]
   ; update the lengths-of-residence table for this turtle
   ;let length-of-residence-here (table:get-or-default lengths-of-residence (list ([pxcor] of home-patch) ([pycor] of home-patch)) 0) + 1
   ;table:put lengths-of-residence (list [pxcor] of home-patch [pycor] of home-patch) length-of-residence-here
@@ -220,8 +231,8 @@ to relocate-to [index-of-patch]
   ;; in the center of the new patch
   move-to destination-patch
 
-  ;; add patch to unique-residences
-  set my-residences patch-set list my-residences destination-patch
+
+  ;; reset age at residence
   set ticks-at-current-residence 0
 end
 
@@ -232,10 +243,11 @@ to-report calc-utility [patch-to-evaluate]
   set patch-being-evaluated patch-to-evaluate
   let utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-  ; 1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate);  + 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  negate (racial-utility get-patch-to-evaluate) + mean-neighborhood-age get-patch-to-evaluate
+  ; 1 * (racial-utility get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate);   - 3 * (neighborhood-isolation get-patch-to-evaluate)+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
   ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
   ;1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * my-tendency-to-move get-patch-to-evaluate
-  1 * (calc-fraction-of-friends get-patch-to-evaluate) + mean-neighborhood-age get-patch-to-evaluate - 2 * (my-tendency-to-move get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate)
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate)  - 2 * (my-tendency-to-move get-patch-to-evaluate); - 3 * (neighborhood-isolation get-patch-to-evaluate)
   ; rest of the factors are as so:
   ;calc-fraction-of-friends get-patch-to-evaluate
   ;variance-neighborhood-tolerance get-patch-to-evaluate
@@ -352,7 +364,7 @@ density
 density
 0
 1
-0.91
+0.7
 0.01
 1
 NIL
@@ -556,7 +568,7 @@ tolerance-group-A
 tolerance-group-A
 0
 1
-0.29
+0.32
 0.01
 1
 NIL
@@ -571,11 +583,44 @@ tolerance-group-B
 tolerance-group-B
 0
 1
-0.3
+0.13
 0.01
 1
 NIL
 HORIZONTAL
+
+SLIDER
+14
+465
+186
+498
+history-length
+history-length
+0
+50
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+815
+226
+1015
+376
+Recent Moves Hist
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "if update-graph? [histogram [sum my-recent-moves] of turtles]"
 
 @#$#@#$#@
 ## WHAT IS IT?
