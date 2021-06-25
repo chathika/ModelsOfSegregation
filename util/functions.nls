@@ -75,7 +75,7 @@ end
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report my-tendency-to-move [patch-to-evaluate]
   if ticks = 0 [report 0]
-  ifelse patch-being-evaluated = home-patch [
+  ifelse patch-to-evaluate = home-patch [
     report 1 - (sum my-recent-moves) / max-history-length
   ][
     report (sum my-recent-moves) / max-history-length
