@@ -4,6 +4,8 @@
 ;; turtle procedure
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report calc-fraction-of-friends [patch-to-evaluate]
+  if patch-to-evaluate = False [ report 0]
+  if patch-to-evaluate = True [ report 1]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let my-group color-group
   let no-of-friends count neighbor-patches with [any? (turtles-here with [color-group = my-group])]
@@ -102,31 +104,15 @@ end
 
 
 ;;;;;; operators ;;;;;;
+;; geometric mean
 ;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
-to-report combine [a b]
-  report (a  + b) / 2
+to-report mean_ [a b]
+  report (a + b) / 2
 end
+
 ;; run by a patch
-;; takes two subscore reporters and concats them with an addition operator
+;; flips subutility around 0.5. sub-utility range is between 0, 1
 ;; @EMD @operator @return-type=float @parameter-type=float @structure=-
-to-report negate [a]
-  report -1 * a
-end
-
-;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
-to-report multiply [a b]
-  report a * b
-end
-
-;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,-
-to-report divide [a b]
-  report a / b
-end
-
-
-;; reports true if the the utility of the neighbor would decrease if the calling turtle would reside in the neighbor's neighborhood 
-;; in other words, a true value indicates the the neighbor would prefer tha the turtle would not be her/his neighborhood
-;; turtle procedure
-to-report presence-decreases-utility? [neighbor]
-;;; not implemented  
+to-report invert [a]
+  report ((a - 0.5) * -1) + 0.5
 end
