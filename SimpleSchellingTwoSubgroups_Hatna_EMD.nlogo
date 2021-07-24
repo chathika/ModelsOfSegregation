@@ -275,39 +275,6 @@ to shuffle-empty-patches-array [no-of-elements]
     set first-place first-place + 1
   ]
 end
-
-
-;; saves the patches information as ESRI ascii grid
-;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
-;; Todo: enable saving the tolerance pattern
-to save-as-ascii-grid [file-name]
-  file-open file-name
-  ;; saving the header
-  file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
-  file-print (word "nrows         " (max-pxcor - min-pxcor + 1) "\r") ;; nunber of columns
-  file-print "xllcorner     0\r"
-  file-print "yllcorner     0\r"
-  file-print "cellsize      1\r"
-  file-print "NODATA_value  -1\r"
-
-
-  let x-counter min-pxcor
-  while [x-counter <= max-pxcor] [
-    let y-counter min-pycor
-    while [y-counter <= max-pycor] [
-      let cur-value -1
-      ;; if this patch is occupied by a turtle
-      if [resident] of patch x-counter y-counter != nobody [
-        set cur-value [color-group] of [resident] of patch x-counter y-counter
-      ]
-      file-print (word cur-value "\r")
-      set y-counter y-counter + 1
-    ]
-    set x-counter x-counter + 1
-  ]
-
-  file-close
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 209
