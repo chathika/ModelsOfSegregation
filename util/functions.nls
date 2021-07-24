@@ -4,8 +4,6 @@
 ;; turtle procedure
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report calc-fraction-of-friends [patch-to-evaluate]
-  if patch-to-evaluate = False [ report 0]
-  if patch-to-evaluate = True [ report 1]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let my-group color-group
   let no-of-friends count neighbor-patches with [any? (turtles-here with [color-group = my-group])]
@@ -91,7 +89,7 @@ to-report mean-neighborhood-age [patch-to-evaluate]
   if ticks = 0 [report 0]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [resident != nobody]
-  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages / max-ticks-at-current-residence][0]
+  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages /( 1 + max-ticks-at-current-residence)][0]
 end
 
 

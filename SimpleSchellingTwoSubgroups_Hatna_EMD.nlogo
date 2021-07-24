@@ -130,6 +130,7 @@ to go
 
   ]
   set max-ticks-at-current-residence max [ticks-at-current-residence] of turtles
+
   tick
 
   if ticks >= stopping-time [
@@ -239,7 +240,7 @@ to-report calc-utility [patch-to-evaluate]
   set patch-being-evaluated patch-to-evaluate
   let utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-  (racial-utility get-patch-to-evaluate) ;(invert (mean-neighborhood-age get-patch-to-evaluate))
+  mean_ (calc-fraction-of-friends get-patch-to-evaluate) (invert (mean-neighborhood-age get-patch-to-evaluate))
   ;(negate (mean-neighborhood-age get-patch-to-evaluate)) + (racial-utility get-patch-to-evaluate)
   ; 1 * (racial-utility get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate);   - 3 * (neighborhood-isolation get-patch-to-evaluate)+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
   ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
@@ -253,13 +254,10 @@ to-report calc-utility [patch-to-evaluate]
   ;distance-from-home-patch get-patch-to-evaluate
   ;my-length-of-residence-here get-patch-to-evaluate
   ;my-tendency-to-move get-patch-to-evaluate
+  if utility-here > 1 or utility-here < 0 [print utility-here]
   report utility-here
 end
 
-to-report func [eval]
-  ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-  ;(negate (mean-neighborhood-age get-patch-to-evaluate)) + (racial-utility get-patch-to-evaluate)
-end
 ;; randomizes the order of the empty patch array
 ;; only the first "no-of-element" are randomized
 to shuffle-empty-patches-array [no-of-elements]
