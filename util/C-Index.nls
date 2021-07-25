@@ -99,7 +99,8 @@ to mark-homogeneous-areas
   ask patches [
     if resident != nobody [
       ask resident [
-       if calc-fraction-of-friends myself = 1 [
+        set patch-being-evaluated myself
+       if calc-fraction-of-friends [
          set c-index-area color-group
        ]
       ]
