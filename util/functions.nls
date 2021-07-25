@@ -6,9 +6,10 @@
 to-report calc-fraction-of-friends [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let my-group color-group
-  let no-of-friends count neighbor-patches with [any? (turtles-here with [color-group = my-group])]
-  let no-of-neighbors count neighbor-patches with [any? turtles-here]
-  report ifelse-value (no-of-neighbors > 0)[no-of-friends /  no-of-neighbors][0]
+  let occupied-neighbor-patches neighbor-patches with [any? turtles-here]
+  let no-of-friends count occupied-neighbor-patches with [[color-group] of resident = my-group]
+  let no-of-neighbors count occupied-neighbor-patches
+  report ifelse-value (no-of-neighbors > 0)[no-of-friends / no-of-neighbors][0]
 end
 
 ;; The turtle compares fraction of friends in neighborhood of given patch against their tolerance
@@ -24,7 +25,7 @@ end
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report variance-neighborhood-tolerance [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
+  let tolerances [[tolerance] of resident] of neighbor-patches with [any? turtles-here]
   report ifelse-value (length tolerances > 1) [variance tolerances] [0]
 end
 
@@ -33,7 +34,7 @@ end
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report mean-neighborhood-tolerance [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
+  let tolerances [[tolerance] of resident] of neighbor-patches with [any? turtles-here]
   report ifelse-value (length tolerances > 0) [mean tolerances] [0]
 end
 
@@ -50,7 +51,7 @@ end
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report mean-home-utility-of-neighborhood [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
+  let home-utilities [[home-utility] of resident] of neighbor-patches with [any? turtles-here]
   report ifelse-value (length home-utilities > 0) [mean home-utilities] [0]
 end
 
@@ -58,7 +59,7 @@ end
 ;; @EMD @factor @return-type=float @parameter-type=patch
 to-report variance-home-utility-of-neighborhood [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
+  let home-utilities [[home-utility] of resident] of neighbor-patches with [any? turtles-here]
   report ifelse-value (length home-utilities > 1) [variance home-utilities] [0]
 end
 
@@ -88,7 +89,7 @@ end
 to-report mean-neighborhood-age [patch-to-evaluate]
   if ticks = 0 [report 0]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [resident != nobody]
+  let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [any? turtles-here]
   report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages /( 1 + max-ticks-at-current-residence)][0]
 end
 

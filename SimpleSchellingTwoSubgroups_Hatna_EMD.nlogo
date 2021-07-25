@@ -3,9 +3,10 @@
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
 __includes ["util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
 
-extensions [array csv table]
+extensions [array csv table profiler]
 globals [
   empty-patches-array;; an array of unoccupied patches
+  empty-patches-list
   global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
   max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computationsW
   max-history-length
@@ -56,6 +57,7 @@ to setup
 
 
   set empty-patches-array array:from-list sort patches with [resident = nobody]
+  set empty-patches-list sort patches with [resident = nobody]
 
   ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
   color-by-color-group
@@ -164,30 +166,45 @@ end
 to try-to-relocate
 
   ;; The turtle considers a given fraction of the empty patches
-  let no-of-patches-to-evaluate empty-cells-to-evaluate-frac * array:length empty-patches-array
+  ;let no-of-patches-to-evaluate empty-cells-to-evaluate-frac * array:length empty-patches-array
 
   ;; shuffling the first "no-of-patches-to-evaluate" patches
-  shuffle-empty-patches-array (no-of-patches-to-evaluate)
+  ;shuffle-empty-patches-array (no-of-patches-to-evaluate)
 
-  let utility-of-best-patch -1
-  let index-of-best-patch -1 ;; the index in the empty-patches-array
+
+;  let utility-of-best-patch -1
+;  let index-of-best-patch -1 ;; the index in the empty-patches-array
+;  let counter 0
+;
+;  ;; Looking for the patch with the highest utility
+;  while [counter < no-of-patches-to-evaluate] [
+;    let patch-to-evaluate item counter empty-patches
+;    let utility calc-utility patch-to-evaluate
+;    if (utility >= utility-of-best-patch)
+;       [
+;         set utility-of-best-patch utility
+;         set index-of-best-patch counter
+;       ]
+;     set counter counter + 1
+;
+;  ]
+  set empty-patches-list shuffle empty-patches-list
+  let best-patch nobody
+  let utility-of-best-patch 0
+  let index-of-best-patch 0
   let counter 0
-
-  ;; Looking for the patch with the highest utility
-  while [counter < no-of-patches-to-evaluate] [
-    let patch-to-evaluate array:item empty-patches-array counter
-    let utility calc-utility patch-to-evaluate
-    if (utility >= utility-of-best-patch)
-       [
-         set utility-of-best-patch utility
-         set index-of-best-patch counter
-       ]
-     set counter counter + 1
-
+  foreach empty-patches-list [ p ->
+    let utility-this-patch calc-utility p
+    if utility-this-patch > utility-of-best-patch [
+     set best-patch p
+     set utility-of-best-patch utility-this-patch
+      set index-of-best-patch counter
+    ]
+    set counter counter + 1
   ]
-
   ;; if the turte has found a patch
-  ifelse index-of-best-patch != -1 [
+;  ifelse index-of-best-patch != -1 [
+  ifelse best-patch != nobody [
     ;; Unhappy turtles move if the new patch is better than their home patch
     if home-utility < 1 and utility-of-best-patch > home-utility [
       relocate-to index-of-best-patch
@@ -209,9 +226,11 @@ end
 ;; turtle procedure
 ;; relocates the turtle to the given patch and updates the empty patches array
 to relocate-to [index-of-patch]
-  let destination-patch array:item empty-patches-array index-of-patch
+  ;let destination-patch array:item empty-patches-array index-of-patch
+  let destination-patch item index-of-patch empty-patches-list
   ;; copy the home-patch to the array instead of destination-patch
-  array:set empty-patches-array index-of-patch (home-patch)
+  ;array:set empty-patches-array index-of-patch (home-patch)
+  set empty-patches-list replace-item index-of-patch empty-patches-list home-patch
 
   ;; the old home patch should no longer be occupied
   ask home-patch [
@@ -275,6 +294,39 @@ to shuffle-empty-patches-array [no-of-elements]
     set first-place first-place + 1
   ]
 end
+
+
+;; saves the patches information as ESRI ascii grid
+;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
+;; Todo: enable saving the tolerance pattern
+to save-as-ascii-grid [file-name]
+  file-open file-name
+  ;; saving the header
+  file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
+  file-print (word "nrows         " (max-pxcor - min-pxcor + 1) "\r") ;; nunber of columns
+  file-print "xllcorner     0\r"
+  file-print "yllcorner     0\r"
+  file-print "cellsize      1\r"
+  file-print "NODATA_value  -1\r"
+
+
+  let x-counter min-pxcor
+  while [x-counter <= max-pxcor] [
+    let y-counter min-pycor
+    while [y-counter <= max-pycor] [
+      let cur-value -1
+      ;; if this patch is occupied by a turtle
+      if [resident] of patch x-counter y-counter != nobody [
+        set cur-value [color-group] of [resident] of patch x-counter y-counter
+      ]
+      file-print (word cur-value "\r")
+      set y-counter y-counter + 1
+    ]
+    set x-counter x-counter + 1
+  ]
+
+  file-close
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 209
@@ -329,7 +381,7 @@ density
 density
 0
 1
-0.7
+0.85
 0.01
 1
 NIL
@@ -452,7 +504,7 @@ INPUTBOX
 99
 376
 stopping-time
-10000.0
+500.0
 1
 0
 Number
@@ -533,7 +585,7 @@ tolerance-group-A
 tolerance-group-A
 0
 1
-0.32
+0.12
 0.01
 1
 NIL
@@ -548,7 +600,7 @@ tolerance-group-B
 tolerance-group-B
 0
 1
-0.32
+0.83
 0.01
 1
 NIL
@@ -586,6 +638,23 @@ false
 "" ""
 PENS
 "default" 1.0 1 -16777216 true "" "if update-graph? [histogram [sum my-recent-moves] of turtles]"
+
+BUTTON
+894
+68
+973
+101
+Profile
+profiler:reset\nsetup\nprofiler:start\nrepeat 1 [go]\nprofiler:stop\nprint profiler:report\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
