@@ -12,14 +12,6 @@ to-report calc-fraction-of-friends
   report ifelse-value (no-of-neighbors > 0)[no-of-friends / no-of-neighbors][0]
 end
 
-;; The turtle compares fraction of friends in neighborhood of given patch against their tolerance
-;; turtle procedure
-;; @EMD @factor @return-type=float
-to-report racial-utility
-  let fraction calc-fraction-of-friends
-  report ifelse-value fraction < tolerance [fraction / tolerance][1]
-end
-
 ;; turtle procedure
 ;; reports the normalized variance in tolerance in the patch neighborhood
 ;; @EMD @factor @return-type=float

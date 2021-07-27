@@ -5,8 +5,7 @@ __includes ["util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
 
 extensions [array csv table profiler]
 globals [
-  empty-patches-array;; an array of unoccupied patches
-  empty-patches-list
+  empty-patches-list; a list of unoccupied patches
   global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
   max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computationsW
   max-history-length
@@ -55,8 +54,6 @@ to setup
     set color-group 1
   ]
 
-
-  set empty-patches-array array:from-list sort patches with [resident = nobody]
   set empty-patches-list sort patches with [resident = nobody]
 
   ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
@@ -164,30 +161,6 @@ end
 
 ;; turtle procedure
 to try-to-relocate
-
-  ;; The turtle considers a given fraction of the empty patches
-  ;let no-of-patches-to-evaluate empty-cells-to-evaluate-frac * array:length empty-patches-array
-
-  ;; shuffling the first "no-of-patches-to-evaluate" patches
-  ;shuffle-empty-patches-array (no-of-patches-to-evaluate)
-
-
-;  let utility-of-best-patch -1
-;  let index-of-best-patch -1 ;; the index in the empty-patches-array
-;  let counter 0
-;
-;  ;; Looking for the patch with the highest utility
-;  while [counter < no-of-patches-to-evaluate] [
-;    let patch-to-evaluate item counter empty-patches
-;    let utility calc-utility patch-to-evaluate
-;    if (utility >= utility-of-best-patch)
-;       [
-;         set utility-of-best-patch utility
-;         set index-of-best-patch counter
-;       ]
-;     set counter counter + 1
-;
-;  ]
   set empty-patches-list shuffle empty-patches-list
   let best-patch nobody
   let utility-of-best-patch 0
@@ -229,7 +202,6 @@ to relocate-to [index-of-patch]
   ;let destination-patch array:item empty-patches-array index-of-patch
   let destination-patch item index-of-patch empty-patches-list
   ;; copy the home-patch to the array instead of destination-patch
-  ;array:set empty-patches-array index-of-patch (home-patch)
   set empty-patches-list replace-item index-of-patch empty-patches-list home-patch
 
   ;; the old home patch should no longer be occupied
@@ -255,16 +227,10 @@ end
 ;; turtle procedure
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
-
   set patch-being-evaluated patch-to-evaluate
   let utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
   mean_ (calc-fraction-of-friends) (invert (mean-neighborhood-age))
-  ;(negate (mean-neighborhood-age get-patch-to-evaluate)) + (racial-utility get-patch-to-evaluate)
-  ; 1 * (racial-utility get-patch-to-evaluate) + -2 * (my-tendency-to-move get-patch-to-evaluate);   - 3 * (neighborhood-isolation get-patch-to-evaluate)+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
-  ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
-  ;1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * my-tendency-to-move get-patch-to-evaluate
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate)  - 2 * (my-tendency-to-move get-patch-to-evaluate); - 3 * (neighborhood-isolation get-patch-to-evaluate)
   ; rest of the factors are as so:
   ;calc-fraction-of-friends get-patch-to-evaluate
   ;variance-neighborhood-tolerance get-patch-to-evaluate
@@ -274,57 +240,6 @@ to-report calc-utility [patch-to-evaluate]
   ;my-length-of-residence-here get-patch-to-evaluate
   ;my-tendency-to-move get-patch-to-evaluate
   report utility-here
-end
-
-;; randomizes the order of the empty patch array
-;; only the first "no-of-element" are randomized
-to shuffle-empty-patches-array [no-of-elements]
-  let first-place 0
-  let last-place array:length empty-patches-array - 1
-
-  while [first-place < no-of-elements] [
-    ;; pick a random index between first-place and last-place
-    let rand-index first-place + random (last-place - first-place + 1)
-
-    ;; swap the element at rand-index with the element at first place
-    let temp array:item empty-patches-array first-place
-    array:set empty-patches-array first-place (array:item empty-patches-array rand-index)
-    array:set empty-patches-array rand-index (temp)
-    set first-place first-place + 1
-  ]
-end
-
-
-;; saves the patches information as ESRI ascii grid
-;; the group code of turtle is saved. If a patch is empty, a -1 (no data) is saved
-;; Todo: enable saving the tolerance pattern
-to save-as-ascii-grid [file-name]
-  file-open file-name
-  ;; saving the header
-  file-print (word "ncols         " (max-pycor - min-pycor + 1)  "\r") ;; nunber of rows
-  file-print (word "nrows         " (max-pxcor - min-pxcor + 1) "\r") ;; nunber of columns
-  file-print "xllcorner     0\r"
-  file-print "yllcorner     0\r"
-  file-print "cellsize      1\r"
-  file-print "NODATA_value  -1\r"
-
-
-  let x-counter min-pxcor
-  while [x-counter <= max-pxcor] [
-    let y-counter min-pycor
-    while [y-counter <= max-pycor] [
-      let cur-value -1
-      ;; if this patch is occupied by a turtle
-      if [resident] of patch x-counter y-counter != nobody [
-        set cur-value [color-group] of [resident] of patch x-counter y-counter
-      ]
-      file-print (word cur-value "\r")
-      set y-counter y-counter + 1
-    ]
-    set x-counter x-counter + 1
-  ]
-
-  file-close
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -525,21 +440,6 @@ false
 "" ""
 PENS
 "default" 0.1 1 -16777216 true "" "if update-graph? and ticks > 1 [ \n  histogram [home-utility] of turtles\n]"
-
-SLIDER
-0
-263
-209
-296
-empty-cells-to-evaluate-frac
-empty-cells-to-evaluate-frac
-0
-1
-1.0
-0.05
-1
-NIL
-HORIZONTAL
 
 BUTTON
 276
