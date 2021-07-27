@@ -55,7 +55,7 @@ to setup
   ]
 
   set empty-patches-list sort patches with [resident = nobody]
-
+  set tolerance-group-B tolerance-group-A
   ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
   color-by-color-group
   ask turtles [
@@ -67,7 +67,6 @@ to setup
   set global-max-tolerance max [tolerance] of turtles
   set max-distance-between-patches (sqrt ( (world-height / 2) ^ 2 + (world-width / 2) ^ 2))
   reset-ticks
-
 end
 
 
