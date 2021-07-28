@@ -498,7 +498,7 @@ tolerance-group-B
 tolerance-group-B
 0
 1
-0.83
+0.12
 0.01
 1
 NIL
