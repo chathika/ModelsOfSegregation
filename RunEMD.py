@@ -1,6 +1,6 @@
 from EvolutionaryModelDiscovery import *
 import numpy as np
-modelPath = "SimpleSchellingTwoSubgroups_Hatna_EMD.nlogo"
+modelPath = "SimpleSchellingTwoSubgroups_Hatna.nlogo"
 setup = [
     'set neighborhood-distance 1',
     'set prob-of-relocation-attempt-by-happy random 0.01',
@@ -11,7 +11,7 @@ setup = [
     'setup']
 measurements = ["c-index"]
 ticks = 10
-emd = EvolutionaryModelDiscovery("/opt/netlogo/", modelPath,setup, measurements, ticks)
+emd = EvolutionaryModelDiscovery("/home/social-sim/NetLogo 6.2.0/", modelPath,setup, measurements, ticks)
 emd.setMutationRate(0.1)
 emd.setCrossoverRate(0.8)
 emd.setGenerations(20)
