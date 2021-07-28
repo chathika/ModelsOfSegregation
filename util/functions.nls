@@ -59,7 +59,7 @@ end
 ;; turtle procedure
 ;; @EMD @factor @return-type=float
 to-report distance-from-home-patch
-  report [distance patch-being-evaluated] of home-patch / max-distance-between-patches
+  report distance patch-being-evaluated / max-distance-between-patches
 end
 
 ;; reports number of moves / ticks if patch-being-evaluated is not home-patch
