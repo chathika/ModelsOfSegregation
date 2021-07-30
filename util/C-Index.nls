@@ -4,54 +4,13 @@
 
 ;; reports the c-index
 to-report c-index
-  mark-areas
-  let size-of-blue-patch 0
-  let size-of-green-patch 0
-  let size-of-integrated-patch 0
-  let total-size 0
-
-  ask patches [
-
-    set total-size total-size + 1
-    if c-index-area = 1 [
-      set size-of-blue-patch size-of-blue-patch + 1
-    ]
-
-    if c-index-area = 2 [
-      set size-of-green-patch size-of-green-patch + 1
-    ]
-
-    if c-index-area = 3 [
-      set size-of-integrated-patch size-of-integrated-patch + 1
-    ]
-  ]
+  let total-size (sum (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch)))
   report (min (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))) / total-size
 end
 
 ;; 1 - Gini Coefficient (ie. area under lorenz curve) of c areas
 to-report mixed-coexistence
-  mark-areas
-  let size-of-blue-patch 0
-  let size-of-green-patch 0
-  let size-of-integrated-patch 0
-  let total-size 0
-
-  ask patches [
-
-    set total-size total-size + 1
-    if c-index-area = 1 [
-      set size-of-blue-patch size-of-blue-patch + 1
-    ]
-
-    if c-index-area = 2 [
-      set size-of-green-patch size-of-green-patch + 1
-    ]
-
-    if c-index-area = 3 [
-      set size-of-integrated-patch size-of-integrated-patch + 1
-    ]
-  ]
-
+  
   ;; Area under the lorenz curve or 1 - Gini Coefficient
   let areas sort (list (size-of-blue-patch) (size-of-green-patch) (size-of-integrated-patch))
   
@@ -63,6 +22,30 @@ to-report mixed-coexistence
     set cumulative-total cumulative-total + a
   ]
   report b / (0.5 * 3 * cumulative-total)
+end
+
+to calc-areas
+  mark-areas
+  set size-of-blue-patch 0
+  set size-of-green-patch 0
+  set size-of-integrated-patch 0
+  let total-size 0
+
+  ask patches [
+
+    set total-size total-size + 1
+    if c-index-area = 1 [
+      set size-of-blue-patch size-of-blue-patch + 1
+    ]
+
+    if c-index-area = 2 [
+      set size-of-green-patch size-of-green-patch + 1
+    ]
+
+    if c-index-area = 3 [
+      set size-of-integrated-patch size-of-integrated-patch + 1
+    ]
+  ]
 end
 
 ;; Marks the C index areas:
@@ -99,8 +82,7 @@ to mark-homogeneous-areas
   ask patches [
     if resident != nobody [
       ask resident [
-        set patch-being-evaluated myself
-       if calc-fraction-of-friends = 1[
+       if calc-fraction-of-friends myself = 1[
          set c-index-area color-group
        ]
       ]
@@ -122,7 +104,6 @@ to mark-homogeneous-boundary
    if no-of-homo-neighbors > 0 [
      set c-index-area 4
    ]
-    
   ]
 end
 

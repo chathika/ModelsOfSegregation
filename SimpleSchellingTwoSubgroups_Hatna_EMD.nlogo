@@ -3,19 +3,23 @@
 ;; Updated with integration to clustering algorithm by Chathika Gunaratne <chathikagunaratne@gmail.com>
 __includes ["util/functions.nls" "util/C-Index.nls" "util/MoransI.nls"]
 
-extensions [array csv table profiler]
+extensions [array csv table]
 globals [
-  empty-patches-list; a list of unoccupied patches
+  empty-patches-list;; an array of unoccupied patches
   global-max-tolerance;; storing the variance of tolerance as a global to avoid excessive computations
   max-distance-between-patches;; storing the maximum possible distance between patches to avoid excessive computationsW
   max-history-length
   max-ticks-at-current-residence
+  size-of-blue-patch
+  size-of-green-patch
+  size-of-integrated-patch
 ]
 
 turtles-own [
   home-patch; a reference to the home patch
   home-utility; the utility of the home patch
   home-utility-unassigned; temporary variable to prevent compounding
+  normalizer
   color-group; the group membership (1 or 2), represent the turtles color
   tolerance ;; the minimum fraction of friends that make an aent happy (utility of 1)
   my-recent-moves ; set of patches this agent has lived in
@@ -53,7 +57,7 @@ to setup
   ask n-of no-of-blue-turtles turtles [
     set color-group 1
   ]
-
+  ;set empty-patches-array array:from-list sort patches with [resident = nobody]
   set empty-patches-list sort patches with [resident = nobody]
   set tolerance-group-B tolerance-group-A
   ask turtles [ifelse one-of [true false] [set tolerance tolerance-group-A][set tolerance tolerance-group-B]]
@@ -66,6 +70,7 @@ to setup
   ;; set some globals required for utility function calculations
   set global-max-tolerance max [tolerance] of turtles
   set max-distance-between-patches (sqrt ( (world-height / 2) ^ 2 + (world-width / 2) ^ 2))
+  calc-areas
   reset-ticks
 end
 
@@ -81,7 +86,6 @@ to-report get-neighbors
     while [y-counter <= pycor + neighborhood-distance] [
       let x x-counter
       let y y-counter
-
       ;; a patch is not a neighbor of itself
       if not (pxcor = x and pycor = y) [
         ;; adding the patch to the neighbors list
@@ -116,14 +120,16 @@ end
 
 
 to go
-
+  calc-areas
   calc-home-utilities
-
   ; compare home utility with potential new home utilities
   ask turtles [
+    let relocated False
     if interested-to-relocate? [
-      try-to-relocate
+      set relocated try-to-relocate
     ]
+    set my-recent-moves lput (ifelse-value relocated [1][0]) my-recent-moves
+    if (length my-recent-moves > max-history-length) [set my-recent-moves sublist my-recent-moves 1 max-history-length]
     set ticks-at-current-residence ticks-at-current-residence + 1
 
   ]
@@ -153,13 +159,13 @@ end
 ;; reports true if the turtle is intersted to relocate
 to-report interested-to-relocate?
   report
-    home-utility < 1 or
-      (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
+    home-utility < tolerance or
+      (home-utility >= tolerance and random-float 1 < prob-of-relocation-attempt-by-happy)
 end
 
 
 ;; turtle procedure
-to try-to-relocate
+to-report try-to-relocate
   set empty-patches-list shuffle empty-patches-list
   let best-patch nobody
   let utility-of-best-patch 0
@@ -174,33 +180,29 @@ to try-to-relocate
     ]
     set counter counter + 1
   ]
+  let relocated False
   ;; if the turte has found a patch
-;  ifelse index-of-best-patch != -1 [
-  ifelse best-patch != nobody [
+  if index-of-best-patch != -1 [
     ;; Unhappy turtles move if the new patch is better than their home patch
-    if home-utility < 1 and utility-of-best-patch > home-utility [
+    if home-utility < tolerance and utility-of-best-patch > home-utility [
       relocate-to index-of-best-patch
     ]
     ;; Happy turtles will only move to another good patch
-    if home-utility = 1 and utility-of-best-patch = 1 [
+    if home-utility >= tolerance and utility-of-best-patch >= tolerance [
       relocate-to index-of-best-patch
     ]
     ;; record a move
-    set my-recent-moves lput 1 my-recent-moves
-   ][
-    ;; record no move
-    set my-recent-moves lput 0 my-recent-moves
+    set relocated True
   ]
-  if (length my-recent-moves > max-history-length) [set my-recent-moves sublist my-recent-moves 1 max-history-length]
+  report relocated
 end
 
 
 ;; turtle procedure
 ;; relocates the turtle to the given patch and updates the empty patches array
 to relocate-to [index-of-patch]
-  ;let destination-patch array:item empty-patches-array index-of-patch
-  let destination-patch item index-of-patch empty-patches-list
   ;; copy the home-patch to the array instead of destination-patch
+  let destination-patch item index-of-patch empty-patches-list
   set empty-patches-list replace-item index-of-patch empty-patches-list home-patch
 
   ;; the old home patch should no longer be occupied
@@ -219,6 +221,7 @@ to relocate-to [index-of-patch]
   ;; in the center of the new patch
   move-to destination-patch
 
+
   ;; reset age at residence
   set ticks-at-current-residence 0
 end
@@ -227,9 +230,14 @@ end
 ;; the turtle evaluates the utility of a given patch
 to-report calc-utility [patch-to-evaluate]
   set patch-being-evaluated patch-to-evaluate
+  set normalizer 0
   let utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-  mean_ (calc-fraction-of-friends) (invert (mean-neighborhood-age))
+  (combine (calc-fraction-of-friends  get-patch-to-evaluate) (combine (combine negate (my-tendency-to-move get-patch-to-evaluate) negate (my-tendency-to-move get-patch-to-evaluate) )(combine negate (neighborhood-isolation get-patch-to-evaluate) (combine negate (neighborhood-isolation get-patch-to-evaluate) negate (neighborhood-isolation get-patch-to-evaluate)))))
+  ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
+  ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
+  ;1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * my-tendency-to-move get-patch-to-evaluate
+  ;1 * (calc-fraction-of-friends get-patch-to-evaluate)  - 2 * (my-tendency-to-move get-patch-to-evaluate); - 3 * (neighborhood-isolation get-patch-to-evaluate)
   ; rest of the factors are as so:
   ;calc-fraction-of-friends get-patch-to-evaluate
   ;variance-neighborhood-tolerance get-patch-to-evaluate
@@ -238,6 +246,8 @@ to-report calc-utility [patch-to-evaluate]
   ;distance-from-home-patch get-patch-to-evaluate
   ;my-length-of-residence-here get-patch-to-evaluate
   ;my-tendency-to-move get-patch-to-evaluate
+  set utility-here ((utility-here / normalizer) + 1) / 2
+  if utility-here > 1 or utility-here < 0 [print utility-here]
   report utility-here
 end
 @#$#@#$#@
@@ -294,7 +304,7 @@ density
 density
 0
 1
-0.85
+0.8
 0.01
 1
 NIL
@@ -407,7 +417,7 @@ SWITCH
 420
 update-graph?
 update-graph?
-1
+0
 1
 -1000
 
@@ -417,7 +427,7 @@ INPUTBOX
 99
 376
 stopping-time
-500.0
+10000.0
 1
 0
 Number
@@ -439,6 +449,21 @@ false
 "" ""
 PENS
 "default" 0.1 1 -16777216 true "" "if update-graph? and ticks > 1 [ \n  histogram [home-utility] of turtles\n]"
+
+SLIDER
+0
+263
+209
+296
+empty-cells-to-evaluate-frac
+empty-cells-to-evaluate-frac
+0
+1
+1.0
+0.05
+1
+NIL
+HORIZONTAL
 
 BUTTON
 276
@@ -483,7 +508,7 @@ tolerance-group-A
 tolerance-group-A
 0
 1
-0.12
+0.4
 0.01
 1
 NIL
@@ -498,7 +523,7 @@ tolerance-group-B
 tolerance-group-B
 0
 1
-0.12
+0.4
 0.01
 1
 NIL
@@ -537,22 +562,25 @@ false
 PENS
 "default" 1.0 1 -16777216 true "" "if update-graph? [histogram [sum my-recent-moves] of turtles]"
 
-BUTTON
-894
-68
-973
-101
-Profile
-profiler:reset\nsetup\nprofiler:start\nrepeat 1 [go]\nprofiler:stop\nprint profiler:report\n
-NIL
-1
-T
-OBSERVER
+PLOT
+867
+10
+1125
+217
+c areas
 NIL
 NIL
-NIL
-NIL
-1
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -14454117 true "" "plot size-of-blue-patch / (size-of-blue-patch + size-of-green-patch + size-of-integrated-patch)"
+"pen-1" 1.0 0 -13840069 true "" "plot size-of-green-patch / (size-of-blue-patch + size-of-green-patch + size-of-integrated-patch)"
+"pen-2" 1.0 0 -9276814 true "" "plot size-of-integrated-patch / (size-of-blue-patch + size-of-green-patch + size-of-integrated-patch)"
 
 @#$#@#$#@
 ## WHAT IS IT?

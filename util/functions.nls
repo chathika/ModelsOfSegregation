@@ -2,9 +2,9 @@
 
 ;; The turtle calculates the fraction of friends in the neighborhood of a given patch
 ;; turtle procedure
-;; @EMD @factor @return-type=float
-to-report calc-fraction-of-friends
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report calc-fraction-of-friends [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let my-group color-group
   let occupied-neighbor-patches neighbor-patches with [any? turtles-here]
   let no-of-friends count occupied-neighbor-patches with [[color-group] of resident = my-group]
@@ -14,59 +14,59 @@ end
 
 ;; turtle procedure
 ;; reports the normalized variance in tolerance in the patch neighborhood
-;; @EMD @factor @return-type=float
-to-report variance-neighborhood-tolerance
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
-  let tolerances [[tolerance] of resident] of neighbor-patches with [any? turtles-here]
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report variance-neighborhood-tolerance [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
   report ifelse-value (length tolerances > 1) [variance tolerances] [0]
 end
 
 ;; turtle procedure
 ;; reports the mean tolerance in the patch neighborhood
-;; @EMD @factor @return-type=float
-to-report mean-neighborhood-tolerance
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
-  let tolerances [[tolerance] of resident] of neighbor-patches with [any? turtles-here]
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report mean-neighborhood-tolerance [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
   report ifelse-value (length tolerances > 0) [mean tolerances] [0]
 end
 
 ;; turtles procedure
 ;; reports the normalized isolation of the patch neighborhood
-;; @EMD @factor @return-type=float
-to-report neighborhood-isolation
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report neighborhood-isolation [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let no-of-isolated-patches count neighbor-patches with [resident = nobody]
   report no-of-isolated-patches / count neighbor-patches
 end
 
 ;; reports the mean of the home-utility experienced by residents in this neighborhood
-;; @EMD @factor @return-type=float
-to-report mean-home-utility-of-neighborhood
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
-  let home-utilities [[home-utility] of resident] of neighbor-patches with [any? turtles-here]
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report mean-home-utility-of-neighborhood [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
   report ifelse-value (length home-utilities > 0) [mean home-utilities] [0]
 end
 
 ;; reports the variance of the home-utility experienced by residents in this neighborhood
-;; @EMD @factor @return-type=float
-to-report variance-home-utility-of-neighborhood
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
-  let home-utilities [[home-utility] of resident] of neighbor-patches with [any? turtles-here]
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report variance-home-utility-of-neighborhood [patch-to-evaluate]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
   report ifelse-value (length home-utilities > 1) [variance home-utilities] [0]
 end
 
 ;; reports the distance from the home-patch
 ;; turtle procedure
-;; @EMD @factor @return-type=float
-to-report distance-from-home-patch
-  report distance patch-being-evaluated / max-distance-between-patches
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report distance-from-home-patch [patch-to-evaluate]
+  report [distance patch-to-evaluate] of home-patch / max-distance-between-patches
 end
 
-;; reports number of moves / ticks if patch-being-evaluated is not home-patch
-;; reports 1-(moves/ticks) if patch-being-evaluated is home-patch
+;; reports number of moves / ticks if patch-to-evaluate is not home-patch
+;; reports 1-(moves/ticks) if patch-to-evaluate is home-patch
 ;; turtle procedure
-;; @EMD @factor @return-type=float
-to-report my-tendency-to-move
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report my-tendency-to-move [patch-to-evaluate]
   if ticks = 0 [report 0]
   ifelse patch-being-evaluated = home-patch [
     report 1 - (sum my-recent-moves) / max-history-length
@@ -77,25 +77,32 @@ end
 
 ;; reports the mean neighbor age here
 ;; turtle procedure
-;; @EMD @factor @return-type=float
-to-report mean-neighborhood-age
+;; @EMD @factor @return-type=float @parameter-type=patch
+to-report mean-neighborhood-age [patch-to-evaluate]
   if ticks = 0 [report 0]
-  let neighbor-patches [neighboring-patches] of patch-being-evaluated
-  let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [any? turtles-here]
-  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages /( 1 + max-ticks-at-current-residence)][0]
+  let neighbor-patches [neighboring-patches] of patch-to-evaluate
+  let neighborhood-ages [[ticks-at-current-residence] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value length neighborhood-ages > 0 [mean neighborhood-ages / (1 + max-ticks-at-current-residence)][0]
 end
+
+
+;; reports the patch to evaluate
+;; @EMD @factor @return-type=patch
+to-report get-patch-to-evaluate
+ set normalizer normalizer + 1
+  report patch-being-evaluated
+end
+
 
 
 ;;;;;; operators ;;;;;;
-;; geometric mean
 ;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
-to-report mean_ [a b]
-  report (a + b) / 2
+to-report combine [a b]
+  report a  + b
 end
-
 ;; run by a patch
-;; flips subutility around 0.5. sub-utility range is between 0, 1
+;; takes two subscore reporters and concats them with an addition operator
 ;; @EMD @operator @return-type=float @parameter-type=float @structure=-
-to-report invert [a]
-  report ((a - 0.5) * -1) + 0.5
+to-report negate [a]
+  report -1 * a
 end
