@@ -158,9 +158,9 @@ end
 ;; turtle procedure
 ;; reports true if the turtle is intersted to relocate
 to-report interested-to-relocate?
-  report
-    home-utility < tolerance or
-      (home-utility >= tolerance and random-float 1 < prob-of-relocation-attempt-by-happy)
+   report
+    home-utility < 1 or
+         (home-utility = 1 and random-float 1 < prob-of-relocation-attempt-by-happy)
 end
 
 
@@ -184,11 +184,11 @@ to-report try-to-relocate
   ;; if the turte has found a patch
   if index-of-best-patch != -1 [
     ;; Unhappy turtles move if the new patch is better than their home patch
-    if home-utility < tolerance and utility-of-best-patch > home-utility [
+    if home-utility < 1 and utility-of-best-patch > home-utility [
       relocate-to index-of-best-patch
     ]
     ;; Happy turtles will only move to another good patch
-    if home-utility >= tolerance and utility-of-best-patch >= tolerance [
+    if home-utility = 1 and utility-of-best-patch = 1 [
       relocate-to index-of-best-patch
     ]
     ;; record a move
@@ -248,7 +248,13 @@ to-report calc-utility [patch-to-evaluate]
   ;my-tendency-to-move get-patch-to-evaluate
   set utility-here ((utility-here / normalizer) + 1) / 2
   if utility-here > 1 or utility-here < 0 [print utility-here]
-  report utility-here
+
+  ifelse  utility-here < tolerance [
+    report utility-here / tolerance
+  ] [
+    report 1
+  ]
+
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -304,7 +310,7 @@ density
 density
 0
 1
-0.8
+0.9
 0.01
 1
 NIL
@@ -508,7 +514,7 @@ tolerance-group-A
 tolerance-group-A
 0
 1
-0.4
+0.3
 0.01
 1
 NIL
@@ -523,7 +529,7 @@ tolerance-group-B
 tolerance-group-B
 0
 1
-0.4
+0.3
 0.01
 1
 NIL
