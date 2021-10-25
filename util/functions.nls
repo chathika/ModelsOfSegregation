@@ -13,21 +13,19 @@ to-report calc-fraction-of-friends [patch-to-evaluate]
 end
 
 ;; turtle procedure
-;; reports the normalized variance in tolerance in the patch neighborhood
-;; @EMD @factor @return-type=float @parameter-type=patch
-to-report variance-neighborhood-tolerance [patch-to-evaluate]
+;; reports the normalized variance in threshold in the patch neighborhood
+to-report variance-neighborhood-threshold [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
-  report ifelse-value (length tolerances > 1) [variance tolerances] [0]
+  let thresholds [[threshold] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value (length thresholds > 1) [variance thresholds] [0]
 end
 
 ;; turtle procedure
-;; reports the mean tolerance in the patch neighborhood
-;; @EMD @factor @return-type=float @parameter-type=patch
-to-report mean-neighborhood-tolerance [patch-to-evaluate]
+;; reports the mean threshold in the patch neighborhood
+to-report mean-neighborhood-threshold [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
-  let tolerances [[tolerance] of resident] of neighbor-patches with [resident != nobody]
-  report ifelse-value (length tolerances > 0) [mean tolerances] [0]
+  let thresholds [[threshold] of resident] of neighbor-patches with [resident != nobody]
+  report ifelse-value (length thresholds > 0) [mean thresholds] [0]
 end
 
 ;; turtles procedure
@@ -48,7 +46,6 @@ to-report mean-home-utility-of-neighborhood [patch-to-evaluate]
 end
 
 ;; reports the variance of the home-utility experienced by residents in this neighborhood
-;; @EMD @factor @return-type=float @parameter-type=patch
 to-report variance-home-utility-of-neighborhood [patch-to-evaluate]
   let neighbor-patches [neighboring-patches] of patch-to-evaluate
   let home-utilities [[home-utility] of resident] of neighbor-patches with [resident != nobody]
@@ -87,7 +84,7 @@ end
 
 
 ;; reports the patch to evaluate
-;; @EMD @factor @return-type=patch
+;; @EMD @operator @return-type=patch
 to-report get-patch-to-evaluate
  set normalizer normalizer + 1
   report patch-being-evaluated

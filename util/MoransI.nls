@@ -20,7 +20,7 @@ to-report moran-I [calc-by-group?]
             set value color-group
           ]
           [
-            set value tolerance
+            set value threshold
           ]
 
           set n n + 1
@@ -49,7 +49,7 @@ to-report moran-I [calc-by-group?]
       set current-turtle-value color-group
     ]
     [
-      set current-turtle-value tolerance
+      set current-turtle-value threshold
     ]
 
 
@@ -65,7 +65,7 @@ to-report moran-I [calc-by-group?]
             set neighbor-value color-group
           ]
           [
-            set neighbor-value tolerance
+            set neighbor-value threshold
           ]
 
           set covariation covariation + (current-turtle-value - average) * (neighbor-value - average) / no-of-neighbors
