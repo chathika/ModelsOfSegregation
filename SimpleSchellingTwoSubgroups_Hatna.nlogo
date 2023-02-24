@@ -233,22 +233,20 @@ to-report calc-utility [patch-to-evaluate]
   set normalizer 0
   let utility-here
   ;; @EMD @EvolveNextLine @Factors-File="util/functions.nls" @return-type=float
-  (combine (calc-fraction-of-friends  get-patch-to-evaluate) (combine (combine negate (my-tendency-to-move get-patch-to-evaluate) negate (my-tendency-to-move get-patch-to-evaluate) )(combine negate (neighborhood-isolation get-patch-to-evaluate) (combine negate (neighborhood-isolation get-patch-to-evaluate) negate (neighborhood-isolation get-patch-to-evaluate)))))
-  ;combine (combine (variance-home-utility-of-neighborhood  get-patch-to-evaluate) (mean-home-utility-of-neighborhood get-patch-to-evaluate))
-  ;(combine (calc-fraction-of-friends get-patch-to-evaluate) negate (my-tendency-to-move get-patch-to-evaluate))
+  ;(calc-fraction-of-friends get-patch-to-evaluate)
+  ( norm_divide (negate (my-tendency-to-move get-patch-to-evaluate)) (calc-fraction-of-friends get-patch-to-evaluate))
+  ;(neighborhood-isolation get-patch-to-evaluate)
+;  (combine
+;    (combine  (negate (my-tendency-to-move get-patch-to-evaluate))(negate (my-tendency-to-move get-patch-to-evaluate)) )
+;    (combine
+;      (combine (calc-fraction-of-friends get-patch-to-evaluate) (neighborhood-isolation get-patch-to-evaluate) )
+;      (combine (neighborhood-isolation get-patch-to-evaluate) (neighborhood-isolation get-patch-to-evaluate) )
+;    )
+;  )
 
-  ;+ 1 * (variance-home-utility-of-residents-here get-patch-to-evaluate)
-  ; 1 * (calc-fraction-of-friends  get-patch-to-evaluate); + distance-from-home-patch get-patch-to-evaluate - 1 * (my-tendency-to-move get-patch-to-evaluate)
-  ;1 * (racial-utility get-patch-to-evaluate) - 3 * (neighborhood-isolation get-patch-to-evaluate) + -2 * my-tendency-to-move get-patch-to-evaluate
-  ;1 * (calc-fraction-of-friends get-patch-to-evaluate)  - 2 * (my-tendency-to-move get-patch-to-evaluate); - 3 * (neighborhood-isolation get-patch-to-evaluate)
-  ; rest of the factors are as so:
-  ;calc-fraction-of-friends get-patch-to-evaluate
-  ;variance-neighborhood-threshold get-patch-to-evaluate
-  ;mean-neighborhood-threshold get-patch-to-evaluate
-  ;normalized-neighborhood-isolation get-patch-to-evaluate
-  ;distance-from-home-patch get-patch-to-evaluate
-  ;my-length-of-residence-here get-patch-to-evaluate
-  ;my-tendency-to-move get-patch-to-evaluate
+    ;(calc-fraction-of-friends get-patch-to-evaluate)
+
+  ;( negate (( combine (( norm_divide (( norm_divide (( norm_multiply (( mean-neighborhood-age (( get-patch-to-evaluate  ) )  ) ) (( combine (( neighborhood-isolation (( get-patch-to-evaluate  ) )  ) ) (( neighborhood-isolation (( get-patch-to-evaluate  ) )  ) )  ) )  ) ) (( distance-from-home-patch (( get-patch-to-evaluate  ) )  ) )  ) ) (( norm_divide (( calc-fraction-of-friends (( get-patch-to-evaluate  ) )  ) ) (( neighborhood-isolation (( get-patch-to-evaluate  ) )  ) )  ) )  ) ) (( combine (( neighborhood-isolation (( get-patch-to-evaluate  ) )  ) ) (( norm_divide (( calc-fraction-of-friends (( get-patch-to-evaluate  ) )  ) ) (( neighborhood-isolation (( get-patch-to-evaluate  ) )  ) )  ) )  ) )  ) )  )
   set utility-here ((utility-here / normalizer) + 1) / 2
   if utility-here > 1 or utility-here < 0 [print utility-here]
 
@@ -425,7 +423,7 @@ INPUTBOX
 99
 376
 stopping-time
-10000.0
+5000.0
 1
 0
 Number
@@ -491,7 +489,7 @@ threshold-group-A
 threshold-group-A
 0
 1
-0.35
+0.65
 0.01
 1
 NIL
@@ -506,7 +504,7 @@ threshold-group-B
 threshold-group-B
 0
 1
-0.35
+0.65
 0.01
 1
 NIL
@@ -572,7 +570,7 @@ SWITCH
 439
 update-graph?
 update-graph?
-0
+1
 1
 -1000
 
@@ -923,7 +921,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.2.0
+NetLogo 6.2.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1151,6 +1149,43 @@ setup</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="neighborhood-distance">
       <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="100RunsJasss" repetitions="100" runMetricsEveryStep="true">
+    <setup>set threshold-group-A 0.3 + random-float 0.5
+set threshold-group-B 0.3 + random-float 0.5
+setup</setup>
+    <go>go</go>
+    <timeLimit steps="5000"/>
+    <metric>c-index</metric>
+    <metric>threshold-group-A</metric>
+    <metric>threshold-group-B</metric>
+    <enumeratedValueSet variable="threshold-group-B">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="fraction-of-blue">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="density">
+      <value value="0.95"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="history-length">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="stopping-time">
+      <value value="500"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="update-graph?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="threshold-group-A">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="neighborhood-distance">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-of-relocation-attempt-by-happy">
+      <value value="0.01"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

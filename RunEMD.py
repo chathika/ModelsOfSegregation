@@ -1,4 +1,4 @@
-from EvolutionaryModelDiscovery import *
+from EvolutionaryModelDiscovery import EvolutionaryModelDiscovery
 import numpy as np
 import random
 modelPath = "SimpleSchellingTwoSubgroups_Hatna.nlogo"
@@ -22,7 +22,7 @@ for j in range(5):
 
 measurements = ["c-index"]
 ticks = 500
-emd = EvolutionaryModelDiscovery("/home/social-sim/NetLogo 6.2.0/", modelPath,all_setup_commands, measurements, ticks, agg_func = np.mean)
+emd = EvolutionaryModelDiscovery("/root/EMD/NetLogo-6.2.2-64/NetLogo 6.2.2", modelPath,all_setup_commands, measurements, ticks, agg_func = np.mean)
 emd.set_mutation_rate(0.2)
 emd.set_crossover_rate(0.8)
 emd.set_generations(20)

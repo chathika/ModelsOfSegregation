@@ -93,6 +93,7 @@ end
 
 
 ;;;;;; operators ;;;;;;
+;; run by a patch
 ;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @structure=+,+
 to-report combine [a b]
   report a  + b
@@ -102,4 +103,12 @@ end
 ;; @EMD @operator @return-type=float @parameter-type=float @structure=-
 to-report negate [a]
   report -1 * a
+end
+;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @interaction
+to-report norm_multiply [a b]
+  report a * b
+end
+;; @EMD @operator @return-type=float @parameter-type=float @parameter-type=float @interaction
+to-report norm_divide [a b]
+  report (ifelse-value (a > 0) [1 - a][-1 - a]) * (ifelse-value (b > 0) [1 - b][-1 - b])
 end
